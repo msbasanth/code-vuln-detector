@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+context/
+venv/
+env/
+
+# Data (large files)
+datasets/
+data/processed/
+
+# Outputs
+outputs/checkpoints/
+outputs/logs/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# HuggingFace cache
+.cache/
