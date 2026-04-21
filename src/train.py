@@ -96,15 +96,18 @@ def train(config: dict):
     # TensorBoard
     writer = SummaryWriter(log_dir=config["log_dir"])
 
-    # Checkpoint directory
+    # Checkpoint directory (model-specific)
     os.makedirs(config["checkpoint_dir"], exist_ok=True)
+    model_variant = config["model_name"].split("/")[-1]
+    model_checkpoint_dir = os.path.join(config["checkpoint_dir"], model_variant)
+    os.makedirs(model_checkpoint_dir, exist_ok=True)
 
     # Resume from checkpoint
     start_epoch = 0
     best_f1 = 0.0
     patience_counter = 0
 
-    checkpoint_path = os.path.join(config["checkpoint_dir"], "latest.pt")
+    checkpoint_path = os.path.join(model_checkpoint_dir, "latest.pt")
     if os.path.exists(checkpoint_path):
         logger.info(f"Resuming from {checkpoint_path}")
         ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
@@ -119,6 +122,7 @@ def train(config: dict):
     # Training loop
     accum_steps = config.get("gradient_accumulation_steps", 1)
     log_every = config.get("log_every_n_steps", 100)
+    training_start = time.time()
 
     for epoch in range(start_epoch, config["epochs"]):
         model.train()
@@ -170,6 +174,7 @@ def train(config: dict):
                 progress.set_postfix(loss=f"{avg:.4f}")
 
         epoch_time = time.time() - epoch_start
+        total_training_time = time.time() - training_start
         train_avg_loss = epoch_loss / len(train_loader)
 
         # Evaluate
@@ -199,16 +204,17 @@ def train(config: dict):
             "test_acc": test_acc,
             "test_f1": test_f1,
             "config": config,
+            "training_time": total_training_time,
         }
         if scaler:
             ckpt_data["scaler_state_dict"] = scaler.state_dict()
 
-        torch.save(ckpt_data, os.path.join(config["checkpoint_dir"], "latest.pt"))
+        torch.save(ckpt_data, os.path.join(model_checkpoint_dir, "latest.pt"))
 
         # Best model
         if test_f1 > best_f1:
             best_f1 = test_f1
-            torch.save(ckpt_data, os.path.join(config["checkpoint_dir"], "best.pt"))
+            torch.save(ckpt_data, os.path.join(model_checkpoint_dir, "best.pt"))
             logger.info(f"New best model saved (Macro-F1: {best_f1:.4f})")
             patience_counter = 0
         else:

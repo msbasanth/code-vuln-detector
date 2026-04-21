@@ -1,21 +1,38 @@
-"""CodeT5-small encoder with classification head for CWE detection.
+"""Encoder with classification head for CWE detection.
+
+Supports T5-family (CodeT5-small, CodeT5-base) and RoBERTa-family (CodeBERT-base)
+encoders.
 
 Architecture:
-    CodeT5-small encoder → mean pooling → dropout → Linear(512, num_classes)
+    Encoder → mean pooling → dropout → Linear(hidden_size, num_classes)
 """
 
 import torch
 import torch.nn as nn
-from transformers import T5EncoderModel
+from transformers import AutoModel, T5EncoderModel
+
+# Model families that use T5EncoderModel (encoder-only).
+# All others default to AutoModel.
+_T5_PREFIXES = ("Salesforce/codet5",)
+
+
+def _is_t5_family(model_name: str) -> bool:
+    return any(model_name.startswith(p) for p in _T5_PREFIXES)
 
 
 class CWEClassifier(nn.Module):
-    """CodeT5-small based multi-class CWE classifier."""
+    """Multi-class CWE classifier supporting CodeT5 and CodeBERT encoders."""
 
     def __init__(self, model_name: str, num_classes: int, dropout: float = 0.1):
         super().__init__()
-        self.encoder = T5EncoderModel.from_pretrained(model_name)
-        hidden_size = self.encoder.config.d_model  # 512 for codet5-small
+        if _is_t5_family(model_name):
+            self.encoder = T5EncoderModel.from_pretrained(model_name)
+        else:
+            self.encoder = AutoModel.from_pretrained(model_name)
+
+        # T5 exposes d_model; RoBERTa exposes hidden_size
+        cfg = self.encoder.config
+        hidden_size = getattr(cfg, "hidden_size", None) or getattr(cfg, "d_model")
 
         self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(hidden_size, num_classes)

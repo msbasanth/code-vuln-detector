@@ -2,8 +2,23 @@
 # Based on: "Efficient CWE Vulnerability Classification Using CodeT5
 #            with Template-Aware Dataset Splitting"
 
-# Model
-model_name: Salesforce/codet5-small
+# Model Selection
+model_name: microsoft/graphcodebert-base
+available_models:
+  - name: "CodeT5-Small"
+    model_id: "Salesforce/codet5-small"
+  - name: "CodeT5-Base"
+    model_id: "Salesforce/codet5-base"
+  - name: "CodeBERT-Base"
+    model_id: "microsoft/codebert-base"
+  - name: "GraphCodeBERT-Base"
+    model_id: "microsoft/graphcodebert-base"
+  - name: "CodeGemma-2B (Zero-shot)"
+    model_id: "google/codegemma-2b"
+    inference_only: true
+  - name: "Gemma 4 E2B IT (Zero-shot)"
+    model_id: "google/gemma-4-E2B-it"
+    inference_only: true
 num_classes: 118
 
 # Tokenization

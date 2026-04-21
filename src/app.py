@@ -1,21 +1,25 @@
 """Streamlit UI for CWE Vulnerability Detector."""
 
+import json
 import os
 import sys
 import glob
+import time
 
 import truststore
 truststore.inject_into_ssl()
 
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import torch
 from transformers import AutoTokenizer
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.predict import load_model, predict_code, predict_file
-from src.utils import load_config, get_device, load_label_map
+from src.gemma_predict import load_zero_shot_model, predict_code_zero_shot
+from src.utils import load_config, get_device, load_label_map, count_parameters
 
 # CWE short descriptions for the 118 classes in the Juliet Test Suite
 CWE_DESCRIPTIONS = {
@@ -141,14 +145,51 @@ CWE_DESCRIPTIONS = {
 
 
 @st.cache_resource
-def get_model():
-    """Load model, tokenizer, and label map once."""
+def get_model(model_name: str, inference_only: bool = False):
+    """Load model, tokenizer, and label map once (cached per model)."""
     config = load_config("config.yaml")
+    config["model_name"] = model_name  # Override with selected model
     device = get_device()
-    model = load_model(config, device)
-    tokenizer = AutoTokenizer.from_pretrained(config["model_name"])
     label_map = load_label_map(config["label_map_path"])
+    if inference_only:
+        model, tokenizer = load_zero_shot_model(model_name)
+    else:
+        model = load_model(config, device)
+        tokenizer = AutoTokenizer.from_pretrained(config["model_name"])
     return model, tokenizer, label_map, device, config
+
+
+def load_model_comparison():
+    """Load pre-computed model comparison metrics from JSON."""
+    path = os.path.join(os.path.dirname(__file__), "..", "outputs", "model_comparison.json")
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return json.load(f)
+    return None
+
+
+@st.cache_data
+def measure_inference_latency(model_name: str, _model, _tokenizer, _device, max_length: int):
+    """Measure average inference latency for a single model."""
+    sample = 'void bad() { char *p = NULL; printf("%s", p); }'
+    enc = _tokenizer(sample, max_length=max_length, padding="max_length",
+                     truncation=True, return_tensors="pt")
+    ids = enc["input_ids"].to(_device)
+    mask = enc["attention_mask"].to(_device)
+    # Warm up
+    with torch.no_grad():
+        for _ in range(3):
+            _model(ids, mask)
+    # Timed runs
+    times = []
+    with torch.no_grad():
+        for _ in range(10):
+            t0 = time.perf_counter()
+            _model(ids, mask)
+            if _device.type == "cuda":
+                torch.cuda.synchronize()
+            times.append(time.perf_counter() - t0)
+    return round(np.mean(times) * 1000, 2)
 
 
 def get_description(cwe_id: str) -> str:
@@ -218,20 +259,75 @@ st.set_page_config(
 )
 
 st.title("CWE Vulnerability Detector")
-st.caption("Powered by CodeT5-small | 118 CWE categories | Trained on NIST Juliet Test Suite v1.3")
 
-# Load model
-with st.spinner("Loading model..."):
-    model, tokenizer, label_map, device, config = get_model()
+# Load available models from config
+config_base = load_config("config.yaml")
+available_models = config_base.get("available_models", [
+    {"name": "CodeT5-Small", "model_id": "Salesforce/codet5-small"},
+    {"name": "CodeT5-Base", "model_id": "Salesforce/codet5-base"}
+])
+model_options = {m["name"]: m["model_id"] for m in available_models}
+# Track which models are inference-only (no fine-tuning)
+inference_only_ids = {m["model_id"] for m in available_models if m.get("inference_only", False)}
 
-# Top-K slider in sidebar
-top_k = st.sidebar.slider("Top-K Predictions", min_value=1, max_value=20, value=5)
+# --- Sidebar: navigation + branding ---
+st.sidebar.title("Navigation")
+nav_page = st.sidebar.radio(
+    "Go to",
+    ["The Detector", "Metrics", "Test Environment"],
+    index=0,
+    label_visibility="collapsed",
+)
 
-# --- Main page tabs ---
-page_detector, page_training = st.tabs(["The Detector", "Training"])
+# --- Collapsible configuration (only shown on Detector page) ---
+if nav_page == "The Detector":
+    with st.expander("Configuration", expanded=False):
+        cfg_col1, cfg_col2 = st.columns([3, 1])
+        with cfg_col1:
+            selected_model_name = st.selectbox(
+                "Model",
+                options=list(model_options.keys()),
+                index=0,
+                key="model_select",
+            )
+        with cfg_col2:
+            top_k = st.number_input(
+                "Top-K Predictions",
+                min_value=1,
+                max_value=20,
+                value=5,
+                key="top_k_input",
+            )
+    selected_model_id = model_options[selected_model_name]
+    is_inference_only = selected_model_id in inference_only_ids
+
+    if is_inference_only:
+        st.caption(f"Zero-shot · {selected_model_name} | 118 CWE categories")
+    else:
+        st.caption(f"Powered by {selected_model_name} | 118 CWE categories | Trained on NIST Juliet Test Suite v1.3")
+
+    # Load model
+    with st.spinner("Loading model..."):
+        try:
+            model, tokenizer, label_map, device, config = get_model(selected_model_id, inference_only=is_inference_only)
+        except FileNotFoundError as e:
+            st.error(f"Model error: {e}")
+            st.info(f"Please train {selected_model_name} first using: `python -m src.train`")
+            st.stop()
+        except Exception as e:
+            st.error(f"Failed to load {selected_model_name}: {e}")
+            st.stop()
+else:
+    # Defaults for non-detector pages (metrics/environment still need config)
+    selected_model_name = list(model_options.keys())[0]
+    selected_model_id = model_options[selected_model_name]
+    is_inference_only = selected_model_id in inference_only_ids
+    top_k = 5
+    config = load_config("config.yaml")
+    label_map = load_label_map(config["label_map_path"])
 
 # ==================== THE DETECTOR ====================
-with page_detector:
+if nav_page == "The Detector":
     tab_snippet, tab_upload, tab_folder = st.tabs(["Code Snippet", "File Upload", "Folder Scan"])
 
     with tab_snippet:
@@ -243,10 +339,15 @@ with page_detector:
         if st.button("Analyze", key="analyze_snippet", type="primary"):
             if code.strip():
                 with st.spinner("Analyzing..."):
-                    results = predict_code(
-                        code, model, tokenizer, label_map, device,
-                        max_length=config["max_length"], top_k=top_k,
-                    )
+                    if is_inference_only:
+                        results = predict_code_zero_shot(
+                            code, model, tokenizer, selected_model_id, label_map, top_k=top_k,
+                        )
+                    else:
+                        results = predict_code(
+                            code, model, tokenizer, label_map, device,
+                            max_length=config["max_length"], top_k=top_k,
+                        )
                 show_results(results)
             else:
                 st.warning("Please enter some code to analyze.")
@@ -261,10 +362,15 @@ with page_detector:
             st.code(code[:2000] + ("..." if len(code) > 2000 else ""), language="c")
             if st.button("Analyze", key="analyze_upload", type="primary"):
                 with st.spinner("Analyzing..."):
-                    results = predict_code(
-                        code, model, tokenizer, label_map, device,
-                        max_length=config["max_length"], top_k=top_k,
-                    )
+                    if is_inference_only:
+                        results = predict_code_gemma(
+                            code, model, tokenizer, label_map, top_k=top_k,
+                        )
+                    else:
+                        results = predict_code(
+                            code, model, tokenizer, label_map, device,
+                            max_length=config["max_length"], top_k=top_k,
+                        )
                 show_results(results)
 
     with tab_folder:
@@ -285,10 +391,17 @@ with page_detector:
                     progress = st.progress(0)
                     rows = []
                     for i, fpath in enumerate(files):
-                        results = predict_file(
-                            fpath, model, tokenizer, label_map, device,
-                            max_length=config["max_length"], top_k=1,
-                        )
+                        if is_inference_only:
+                            with open(fpath, "r", errors="replace") as fh:
+                                file_code = fh.read()
+                            results = predict_code_gemma(
+                                file_code, model, tokenizer, label_map, top_k=1,
+                            )
+                        else:
+                            results = predict_file(
+                                fpath, model, tokenizer, label_map, device,
+                                max_length=config["max_length"], top_k=1,
+                            )
                         top = results[0]
                         rows.append({
                             "File": os.path.relpath(fpath, folder_path),
@@ -315,8 +428,95 @@ with page_detector:
             else:
                 st.warning("Please enter a valid folder path.")
 
-# ==================== TRAINING ====================
-with page_training:
+# ==================== METRICS ====================
+if nav_page == "Metrics":
+    st.subheader("Model Comparison")
+    all_comparison_data = load_model_comparison()
+
+    trained_model_ids = {m["model_id"] for m in available_models if not m.get("inference_only", False)}
+
+    # Training Overview: all models (training details only for fine-tuned)
+    training_data = all_comparison_data if all_comparison_data else []
+    # Test Performance: all models that have been evaluated
+    comparison_data = all_comparison_data if all_comparison_data else []
+
+    if training_data:
+        # Training / Model Overview table
+        st.markdown("**Training Overview**")
+        training_rows = []
+        for entry in training_data:
+            is_zs = entry.get("inference_only", False)
+            params = entry.get("Parameters", 0)
+            size_mb = entry.get("Size (MB)", 0)
+            train_time = entry.get("Training Time (s)", None)
+            if isinstance(train_time, (int, float)):
+                minutes, secs = divmod(int(train_time), 60)
+                time_str = f"{minutes}m {secs}s"
+            else:
+                time_str = "N/A"
+            training_rows.append({
+                "Model": entry["Model"],
+                "Architecture": entry.get("model_id", ""),
+                "Parameters": f"{params / 1e6:.1f}M" if isinstance(params, (int, float)) and params else "N/A",
+                "Model Size": f"{size_mb:.1f} MB" if isinstance(size_mb, (int, float)) and size_mb else "N/A",
+                "Best Epoch": entry.get("Best Epoch", "N/A") if not is_zs else "N/A",
+                "Training Time": time_str if not is_zs else "N/A",
+                "Type": "Zero-shot" if is_zs else "Fine-tuned",
+            })
+        st.dataframe(
+            pd.DataFrame(training_rows),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        st.divider()
+
+        # Test Metrics table
+        st.markdown("**Test Set Performance** _(macro-averaged)_")
+        test_rows = []
+        for entry in comparison_data:
+            is_zs = entry.get("inference_only", False)
+            model_label = entry["Model"]
+            if is_zs and entry.get("eval_samples"):
+                model_label += f" [{entry['eval_samples']}]"
+            test_rows.append({
+                "Model": model_label,
+                "Accuracy": f"{entry['Accuracy']:.4f}",
+                "Precision": f"{entry['Precision']:.4f}",
+                "Recall": f"{entry['Recall']:.4f}",
+                "F1-Score": f"{entry['F1-Score']:.4f}",
+                "MCC": f"{entry['MCC']:.4f}",
+                "FPR": f"{entry['FPR']:.6f}",
+                "Latency (ms)": f"{entry.get('Latency (ms)', 'N/A')}",
+            })
+        st.dataframe(
+            pd.DataFrame(test_rows),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        # Highlight best model (fine-tuned only for fair comparison)
+        trained_entries = [e for e in comparison_data if not e.get("inference_only", False)]
+        if trained_entries:
+            best = max(trained_entries, key=lambda x: x["F1-Score"])
+            st.success(f"Best fine-tuned model by F1-Score: **{best['Model']}** ({best['F1-Score']:.4f})")
+
+        # Note about inference-only models
+        inference_only_names = [m["name"] for m in available_models if m.get("inference_only", False)]
+        if inference_only_names:
+            st.info(
+                f"**{', '.join(inference_only_names)}** {'is' if len(inference_only_names) == 1 else 'are'} "
+                "inference-only (zero-shot, no fine-tuning) and excluded from training metrics."
+            )
+    else:
+        st.info(
+            "No model comparison data found. Run `python compare_all_metrics.py` "
+            "to generate comprehensive metrics for all trained models."
+        )
+
+    # ==================== TRAINING (sub-section of Metrics) ====================
+    st.divider()
+    st.subheader("Dataset & Training Details")
     train_df, test_df = load_dataset_info()
 
     # Overview metrics
@@ -420,3 +620,98 @@ with page_training:
         columns={"samples": "Samples", "templates": "Unique Templates"}
     ).sort_values("Samples", ascending=False)
     st.dataframe(template_counts, use_container_width=True, hide_index=True)
+
+# ==================== TEST ENVIRONMENT ====================
+if nav_page == "Test Environment":
+    st.header("Project Overview")
+    st.markdown(
+        "> **Source Code Vulnerability Detection Using Fine-Tuned Lightweight "
+        "Large Language Models: An Efficient and Cost-Effective Approach**"
+    )
+    st.markdown(
+        "This project focuses on source code vulnerability detection using "
+        "fine-tuned lightweight large language models. The study uses the "
+        "**Juliet C/C++ 1.3 Test Suite** and evaluates models such as "
+        "CodeT5-base, CodeBERT-base, GraphCodeBERT-base, CodeGemma-2B, and "
+        "Gemma 4 E2B IT. Performance is measured using Accuracy, Precision, "
+        "Recall, F1-score, MCC, and False Positive Rate. The system is "
+        "designed to support efficient and cost-effective vulnerability "
+        "detection and to demonstrate inference on C/C++ code snippets."
+    )
+
+    st.divider()
+
+    # --- Experimental Environment ---
+    st.header("Experimental Environment")
+    hw_col, sw_col = st.columns(2)
+    with hw_col:
+        st.subheader("Hardware")
+        st.markdown(
+            """
+| Component | Specification |
+|---|---|
+| **Processor** | 13th Gen Intel Core i7-13850HX @ 2.10 GHz |
+| **Cores / Threads** | 20 cores / 28 logical processors |
+| **Integrated GPU** | Intel UHD Graphics |
+| **Dedicated GPU** | NVIDIA RTX 2000 Ada Generation Laptop GPU |
+| **VRAM** | ~8 GB (7957 MB) |
+"""
+        )
+    with sw_col:
+        st.subheader("Software")
+        st.markdown(
+            """
+| Component | Details |
+|---|---|
+| **Language** | Python |
+| **Deep Learning** | PyTorch |
+| **Model Library** | Hugging Face Transformers |
+| **Quantization** | bitsandbytes (NF4 4-bit) |
+| **Acceleration** | Hugging Face Accelerate |
+"""
+        )
+
+    st.divider()
+
+    # --- Training Details ---
+    st.header("Training Details")
+    t1, t2 = st.columns(2)
+    with t1:
+        st.markdown(
+            """
+| Item | Detail |
+|---|---|
+| **Task** | Source code vulnerability detection |
+| **Dataset** | Juliet C/C++ 1.3 Test Suite |
+| **Language** | C / C++ |
+| **Training Objective** | Efficient and cost-effective vulnerability detection using lightweight open-source LLMs |
+"""
+        )
+    with t2:
+        st.markdown(
+            """
+| Item | Detail |
+|---|---|
+| **Candidate Models** | CodeT5-base, CodeBERT-base, GraphCodeBERT-base, CodeGemma-2B, Gemma 4 E2B IT |
+| **Evaluation Metrics** | Accuracy, Precision, Recall, F1-score, MCC, False Positive Rate |
+"""
+        )
+
+    st.divider()
+
+    # --- Inference Details ---
+    st.header("Inference Details")
+    st.markdown(
+        "Inference was performed on the same laptop environment using the "
+        "**NVIDIA RTX 2000 Ada Generation Laptop GPU** with **8 GB VRAM**. "
+        "For larger models such as Gemma 4 E2B IT, inference latency was "
+        "affected when low-bit quantization could not be fully enabled, "
+        "leading to CPU offloading. This increased execution time compared "
+        "to fully GPU-resident inference."
+    )
+    st.info(
+        "The inference module analyzes C/C++ source code snippets and predicts "
+        "whether the input is vulnerable or non-vulnerable, along with the "
+        "relevant vulnerability category (CWE) where applicable.",
+        icon="ℹ️",
+    )

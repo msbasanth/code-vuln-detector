@@ -23,7 +23,8 @@ from src.utils import load_config, get_device, load_label_map
 
 def load_model(config: dict, device: torch.device):
     """Load trained model from best checkpoint."""
-    checkpoint_path = os.path.join(config["checkpoint_dir"], "best.pt")
+    model_variant = config["model_name"].split("/")[-1]
+    checkpoint_path = os.path.join(config["checkpoint_dir"], model_variant, "best.pt")
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(f"No checkpoint found at {checkpoint_path}. Train the model first.")
 

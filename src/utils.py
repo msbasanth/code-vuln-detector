@@ -10,6 +10,34 @@ import torch
 import yaml
 
 
+def _patch_fast_tokenizer_add_tokens():
+    """Patch PreTrainedTokenizerFast._add_tokens to accept dict tokens.
+
+    transformers 5.5.x passes added_tokens_decoder entries as dicts to the
+    rust tokenizer backend, but tokenizers>=0.22.0 requires str/AddedToken.
+    This one-time patch converts dicts to AddedToken objects.
+    """
+    try:
+        from tokenizers import AddedToken
+        from transformers.tokenization_utils_tokenizers import PreTrainedTokenizerFast
+
+        _orig = PreTrainedTokenizerFast._add_tokens
+
+        def _patched(self, new_tokens, special_tokens=False):
+            converted = [
+                AddedToken(**t) if isinstance(t, dict) else t
+                for t in new_tokens
+            ]
+            return _orig(self, converted, special_tokens=special_tokens)
+
+        PreTrainedTokenizerFast._add_tokens = _patched
+    except Exception:
+        pass  # If transformers isn't installed yet, skip silently
+
+
+_patch_fast_tokenizer_add_tokens()
+
+
 def load_config(path: str = "config.yaml") -> dict:
     """Load YAML configuration file."""
     with open(path, "r") as f:
