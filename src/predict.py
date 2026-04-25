@@ -17,7 +17,7 @@ from transformers import AutoTokenizer
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.data.preprocess import preprocess
-from src.model import CWEClassifier
+from src.model import CWEClassifier, load_qlora_for_inference
 from src.utils import load_config, get_device, load_label_map
 
 
@@ -99,6 +99,82 @@ def predict_file(
     with open(filepath, "r", encoding="utf-8", errors="replace") as f:
         code = f.read()
     return predict_code(code, model, tokenizer, label_map, device, max_length, top_k)
+
+
+def load_qlora_model(config: dict):
+    """Load QLoRA-trained model from best adapter checkpoint.
+
+    Returns:
+        (model, tokenizer) tuple.
+    """
+    qlora_model_entry = None
+    for m in config.get("available_models", []):
+        if m.get("qlora", False):
+            qlora_model_entry = m
+            break
+    if qlora_model_entry is None:
+        raise ValueError("No model with 'qlora: true' found in available_models")
+
+    model_id = qlora_model_entry["model_id"]
+    variant = model_id.split("/")[-1] + "-qlora"
+    adapter_path = os.path.join(config["checkpoint_dir"], variant, "best_adapter")
+
+    if not os.path.exists(adapter_path):
+        raise FileNotFoundError(
+            f"No QLoRA adapter found at {adapter_path}. "
+            "Train with: python -m src.train_qlora"
+        )
+
+    model, tokenizer = load_qlora_for_inference(
+        model_id=model_id,
+        num_classes=config["num_classes"],
+        adapter_path=adapter_path,
+    )
+    return model, tokenizer
+
+
+def predict_code_qlora(
+    code: str,
+    model,
+    tokenizer,
+    label_map: dict,
+    max_length: int = 256,
+    top_k: int = 5,
+) -> list[dict]:
+    """Predict CWE category using a QLoRA sequence classification model.
+
+    Returns:
+        List of dicts with 'cwe', 'confidence' keys, sorted descending.
+    """
+    code = preprocess(code)
+
+    encoding = tokenizer(
+        code,
+        max_length=max_length,
+        padding="max_length",
+        truncation=True,
+        return_tensors="pt",
+    )
+
+    input_ids = encoding["input_ids"].to(model.device)
+    attention_mask = encoding["attention_mask"].to(model.device)
+
+    with torch.no_grad():
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+        probs = torch.softmax(outputs.logits, dim=-1).squeeze(0)
+
+    inv_map = {v: k for k, v in label_map.items()}
+
+    top_probs, top_indices = probs.topk(top_k)
+    results = []
+    for prob, idx in zip(top_probs.tolist(), top_indices.tolist()):
+        cwe_id = inv_map.get(idx, "unknown")
+        results.append({
+            "cwe": f"CWE-{cwe_id}",
+            "confidence": round(prob, 4),
+        })
+
+    return results
 
 
 def main():

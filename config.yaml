@@ -13,6 +13,9 @@ available_models:
     model_id: "microsoft/codebert-base"
   - name: "GraphCodeBERT-Base"
     model_id: "microsoft/graphcodebert-base"
+  - name: "CodeGemma-2B (QLoRA)"
+    model_id: "google/codegemma-1.1-2b"
+    qlora: true
   - name: "CodeGemma-2B (Zero-shot)"
     model_id: "google/codegemma-2b"
     inference_only: true
@@ -49,6 +52,28 @@ test_path: data/processed/test.parquet
 label_map_path: data/processed/label_map.json
 checkpoint_dir: outputs/checkpoints
 log_dir: outputs/logs
+
+# QLoRA Configuration
+qlora:
+  lora_rank: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  quant_type: nf4
+  use_double_quant: true
+  gradient_checkpointing: true
+  per_device_batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-4
+  epochs: 5
+  patience: 2
 
 # Logging
 log_every_n_steps: 100

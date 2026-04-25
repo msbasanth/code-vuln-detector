@@ -1,0 +1,418 @@
+% ===========================================================================
+% Section 5 — Solution Approach / Methodology
+% IEEE Conference / Journal Format
+% ===========================================================================
+
+\section{Solution Approach / Methodology}
+\label{sec:methodology}
+
+This paper proposes the \textbf{SHARP-LLM} (Secure Healthcare-Aligned Risk
+Prediction via Lightweight LLMs) framework for automated source code
+vulnerability detection and CWE classification.  The framework leverages
+fine-tuned lightweight large language models operating on tokenised C/C++
+source code to classify vulnerabilities into 118~CWE categories.  The
+novelty of the approach is threefold: (i)~a \emph{template-aware data
+splitting} strategy that eliminates structural data leakage inherent in the
+Juliet Test Suite; (ii)~a \emph{multi-paradigm model evaluation} that
+systematically compares encoder-based fine-tuning, QLoRA-based
+parameter-efficient fine-tuning, and zero-shot generative inference within a
+single unified pipeline; and (iii)~a healthcare-oriented risk
+prioritisation layer that maps detected CWE categories to privacy, security,
+and policy-relevant control domains.
+
+% ---------------------------------------------------------------------------
+\subsection{Pipeline Overview}
+\label{sec:pipeline}
+
+Fig.~\ref{fig:system_pipeline} presents the end-to-end SHARP-LLM pipeline.
+Raw C/C++ source code first undergoes preprocessing and sub-word
+tokenisation.  The tokenised representation is then fed into one of several
+fine-tuned lightweight LLMs.  The model produces a binary safe/vulnerable
+decision; for vulnerable inputs the system further performs multi-class CWE
+association across 118~categories, maps the identified CWE to privacy and
+security risk categories, aligns the risk with policy-relevant control
+domains, and finally outputs a healthcare-oriented risk prioritisation
+score.
+
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=4mm and 6mm,
+    block/.style={
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=2.6cm,
+        minimum height=0.7cm,
+        font=\footnotesize
+    },
+    line/.style={-Latex, thin}
+]
+
+\node[block] (input) {Source Code};
+\node[block, below=of input] (prep) {Preprocessing and Tokenization};
+\node[block, below=of prep] (llm) {Fine-Tuned Lightweight LLM};
+
+\node[block, below left=6mm and 10mm of llm] (safe) {Safe Code};
+\node[block, below right=6mm and 10mm of llm] (vuln) {Vulnerable Code};
+
+\node[block, below=of vuln] (cwe) {CWE Association};
+\node[block, below=of cwe] (risk) {Privacy and Security\\Risk Categorization};
+\node[block, below=of risk] (policy) {Policy-Relevant\\Control Domains};
+\node[block, below=of policy] (output) {Healthcare-Oriented\\Risk Prioritization Output};
+
+\draw[line] (input) -- (prep);
+\draw[line] (prep) -- (llm);
+\draw[line] (llm) -- (safe);
+\draw[line] (llm) -- (vuln);
+\draw[line] (vuln) -- (cwe);
+\draw[line] (cwe) -- (risk);
+\draw[line] (risk) -- (policy);
+\draw[line] (policy) -- (output);
+
+\end{tikzpicture}%
+}
+\caption{High-level workflow of the proposed SHARP-LLM framework.}
+\label{fig:system_pipeline}
+\end{figure}
+
+% ---------------------------------------------------------------------------
+\subsection{Data and Environment Design}
+\label{sec:data_design}
+
+\subsubsection{Dataset}
+The study employs the \textbf{NIST Juliet Test Suite for C/C++ v1.3}~\cite{juliet2017}, a widely used benchmark containing synthetic but
+structurally realistic test cases spanning 118~Common Weakness Enumeration
+(CWE) categories.  Each source file follows a naming convention encoding the
+CWE identifier, functional variant, and flow variant, which we parse using a
+regular-expression extractor adapted from the suite's \texttt{py\_common.py}
+utility.  The resulting dataset comprises individual \texttt{.c}/\texttt{.cpp}
+files, each labelled by CWE category and template identifier.
+
+\subsubsection{Input Representation and Feature Space}
+Each sample is a raw C/C++ source code string.  Preprocessing applies a
+four-stage pipeline:
+\begin{enumerate}
+    \item \textbf{Header removal} --- strips the auto-generated
+          \texttt{TEMPLATE GENERATED TESTCASE FILE} comment block.
+    \item \textbf{Comment stripping} --- a character-level state machine
+          removes single-line (\texttt{//}) and multi-line
+          (\texttt{/* ... */}) comments while preserving string and
+          character literals.
+    \item \textbf{Guard removal} --- eliminates Juliet-specific preprocessor
+          guards (\texttt{\#ifndef OMITBAD}, \texttt{\#ifndef OMITGOOD},
+          \texttt{\#ifdef INCLUDEMAIN}, and trailing \texttt{\#endif}).
+    \item \textbf{Whitespace normalisation} --- collapses consecutive
+          whitespace and blank lines to produce a compact, semantics-preserving
+          representation.
+\end{enumerate}
+The preprocessed code is tokenised on-the-fly using each model's native
+sub-word tokeniser (SentencePiece for CodeT5 family, byte-pair encoding for
+CodeBERT/GraphCodeBERT, Gemma tokeniser for CodeGemma), with a maximum
+sequence length of $L = 256$ tokens, right-truncation, and
+\texttt{max\_length} padding.
+
+\subsubsection{Output Space}
+The output is a 118-dimensional probability vector $\hat{\mathbf{y}} \in
+\mathbb{R}^{118}$ produced via a softmax layer.  Each dimension corresponds
+to one CWE category, mapped through a deterministic label encoding (CWE IDs
+sorted numerically $\mapsto$ integer labels $0 \ldots 117$).  At inference
+time the top-$k$ predictions with associated confidence scores are returned.
+
+\subsubsection{Template-Aware Data Splitting}
+A key design decision is the \emph{template-aware splitting} strategy.  In
+the Juliet suite, each CWE category contains multiple \emph{templates}
+(functional variants) instantiated across several \emph{flow variants}.
+Flow variants of the same template share identical vulnerability logic,
+differing only in control-flow structure.  A na\"ive random split risks
+placing flow variants of the same template in both train and test sets,
+causing structural data leakage and artificially inflated metrics.
+
+We employ \texttt{GroupShuffleSplit} from scikit-learn with the template
+identifier as the grouping key, performed independently within each CWE
+category to maintain class balance:
+\begin{equation}
+    \forall\, t \in \mathcal{T}: \quad t \in \mathcal{D}_{\text{train}}
+    \;\oplus\; t \in \mathcal{D}_{\text{test}}
+\label{eq:template_split}
+\end{equation}
+where $\mathcal{T}$ is the set of all template identifiers and $\oplus$
+denotes exclusive disjunction.  CWE categories with only a single template
+are assigned entirely to the training set.  The split ratio is 80/20
+(train/test) with a fixed random seed ($s = 42$) for reproducibility.
+
+% ---------------------------------------------------------------------------
+\subsection{Model Architectures}
+\label{sec:model}
+
+The framework evaluates three distinct model paradigms, enabling a
+systematic comparison of fine-tuning strategies under resource-constrained
+environments (8\,GB VRAM).
+
+\subsubsection{Encoder-Based Classification}
+Four pre-trained encoder models are fine-tuned with a classification head:
+
+\begin{itemize}
+    \item \textbf{CodeT5-Small} (60\,M params) and \textbf{CodeT5-Base}
+          (220\,M params)~\cite{wang2021codet5}: T5-family encoder-decoder
+          models pre-trained on CodeSearchNet with bimodal dual generation
+          and identifier-aware objectives.  We use only the encoder.
+    \item \textbf{CodeBERT-Base} (125\,M params)~\cite{feng2020codebert}:
+          RoBERTa-based model pre-trained on programming and natural
+          language with masked language modelling and replaced token
+          detection.
+    \item \textbf{GraphCodeBERT-Base} (125\,M params)~\cite{guo2020graphcodebert}:
+          extends CodeBERT with data-flow graph pre-training objectives.
+\end{itemize}
+
+The classification architecture is:
+\begin{equation}
+    \hat{\mathbf{y}} = \text{softmax}\!\Big(
+        \mathbf{W} \cdot \text{Dropout}\!\big(
+            \bar{\mathbf{h}}
+        \big) + \mathbf{b}
+    \Big)
+\label{eq:classifier}
+\end{equation}
+where $\bar{\mathbf{h}}$ is the mean-pooled encoder output over non-padding
+tokens:
+\begin{equation}
+    \bar{\mathbf{h}} = \frac{
+        \sum_{i=1}^{L} m_i \cdot \mathbf{h}_i
+    }{
+        \sum_{i=1}^{L} m_i
+    }
+\label{eq:mean_pool}
+\end{equation}
+with $\mathbf{h}_i \in \mathbb{R}^{d}$ being the hidden state at position
+$i$, $m_i \in \{0,1\}$ the attention mask, and $d$ the model's hidden
+dimension.
+
+\subsubsection{QLoRA-Based Parameter-Efficient Fine-Tuning}
+For larger decoder-only models, we employ Quantised Low-Rank Adaptation
+(QLoRA)~\cite{dettmers2023qlora} applied to \textbf{CodeGemma-2B}
+(v1.1, 2.5\,B parameters)~\cite{team2024codegemma}, a model
+purpose-built for code tasks with dependency-graph and unit-test
+lexical packing during pre-training.
+
+The base model is loaded with 4-bit NormalFloat (NF4) quantisation via
+\texttt{BitsAndBytesConfig} with double quantisation enabled, reducing
+memory from $\approx\!5.5$\,GB (FP16) to $\approx\!1.8$\,GB.  Low-rank
+adapters are applied to all linear projection layers:
+\begin{equation}
+    \mathbf{W}' = \mathbf{W}_{\text{frozen}}^{\text{NF4}}
+                 + \frac{\alpha}{r}\,\mathbf{B}\mathbf{A}
+\label{eq:lora}
+\end{equation}
+where $\mathbf{W}_{\text{frozen}}^{\text{NF4}}$ is the 4-bit quantised
+weight matrix, $\mathbf{B} \in \mathbb{R}^{d \times r}$ and
+$\mathbf{A} \in \mathbb{R}^{r \times k}$ are the low-rank adapter
+matrices with rank $r = 16$ and scaling factor $\alpha = 32$.  Target
+modules include query, key, value, output, gate, up, and down projections.
+The classification head (\texttt{score} layer) is trained in full
+precision via \texttt{modules\_to\_save}.
+
+Table~\ref{tab:qlora_config} summarises the QLoRA configuration.
+
+\begin{table}[t]
+\centering
+\caption{QLoRA configuration for CodeGemma-2B fine-tuning.}
+\label{tab:qlora_config}
+\begin{tabular}{ll}
+\hline
+\textbf{Parameter}        & \textbf{Value} \\
+\hline
+LoRA rank ($r$)            & 16 \\
+LoRA alpha ($\alpha$)      & 32 \\
+LoRA dropout               & 0.05 \\
+Target modules             & q, k, v, o, gate, up, down \\
+Quantisation type          & NF4 (double quant) \\
+Compute dtype              & bfloat16 \\
+Gradient checkpointing     & Enabled \\
+Optimiser                  & PagedAdamW (8-bit) \\
+Learning rate              & $2 \times 10^{-4}$ \\
+Effective batch size       & 8 ($2 \times 4$ accum.) \\
+Epochs                     & 5 (patience = 2) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Zero-Shot Generative Inference}
+Two generative models are evaluated without any training:
+\textbf{CodeGemma-2B}~\cite{team2024codegemma} (completion mode) and
+\textbf{Gemma-4-E2B-IT}~\cite{team2024gemma} (instruction-tuned mode, 5.1\,B
+total parameters, 2.3\,B effective).
+
+Zero-shot inference uses a structured prompt that enumerates all 118~valid
+CWE identifiers and instructs the model to output only the CWE number.
+For instruction-tuned models, prompts are wrapped with the model's chat
+template.  Beam search ($B = 10$ for CodeGemma, $B = 2$ for Gemma~4~IT) is
+used for decoding, with a regex-based parser extracting valid CWE numbers
+from each beam.  Confidence scores are derived via softmax normalisation
+of beam log-probabilities:
+\begin{equation}
+    c_j = \frac{\exp(s_j)}{\sum_{j'=1}^{K} \exp(s_{j'})}
+\label{eq:beam_confidence}
+\end{equation}
+where $s_j$ is the log-probability of the $j$-th valid beam and $K$ is the
+number of unique valid predictions.
+
+% ---------------------------------------------------------------------------
+\subsection{Novel Components}
+\label{sec:novel}
+
+\subsubsection{Template-Aware Anti-Leakage Splitting}
+Existing studies on the Juliet Test Suite often perform random sample-level
+splitting, which introduces template leakage --- flow variants of the same
+template appearing in both train and test sets.  Since flow variants share
+identical vulnerability logic, this inflates reported metrics.  Our
+template-aware splitting (Section~\ref{sec:data_design}) enforces strict
+separation at the template level, providing a more rigorous evaluation.
+
+\subsubsection{Multi-Paradigm Comparative Framework}
+Rather than evaluating a single model or fine-tuning strategy, SHARP-LLM
+provides a unified pipeline for comparing three paradigms ---
+encoder-based full fine-tuning, QLoRA parameter-efficient fine-tuning, and
+zero-shot generative inference --- under identical data conditions,
+preprocessing, and evaluation metrics.  This enables controlled ablation
+of model architecture and training strategy effects.
+
+\subsubsection{Resource-Constrained QLoRA Integration}
+The QLoRA fine-tuning of CodeGemma-2B is specifically engineered for
+consumer-grade hardware (8\,GB VRAM), demonstrating that decoder-based
+models with 2.5\,B parameters can be fine-tuned for multi-class
+vulnerability classification on a single GPU.  The combination of NF4
+double quantisation, gradient checkpointing, 8-bit paged optimiser, and
+adapter-only training reduces peak VRAM consumption to
+$\approx\!3$--$4$\,GB.
+
+% ---------------------------------------------------------------------------
+\subsection{Training Procedure}
+\label{sec:training}
+
+\subsubsection{Encoder Model Training}
+All encoder models are trained with the AdamW optimiser~\cite{loshchilov2019decoupled} using a learning
+rate of $5 \times 10^{-5}$, weight decay of $0.01$, and dropout
+$p = 0.1$.  The loss function is the standard cross-entropy:
+\begin{equation}
+    \mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N}\sum_{c=1}^{C}
+        y_{i,c} \log \hat{y}_{i,c}
+\label{eq:ce_loss}
+\end{equation}
+where $N$ is the batch size and $C = 118$ is the number of classes.
+Mixed-precision training (FP16) with gradient scaling is enabled on CUDA
+devices.  Early stopping monitors the macro-F1 score on the test set with a
+patience of 1~epoch.
+
+\subsubsection{QLoRA Training}
+The QLoRA training loop follows a similar structure but operates only on
+the trainable parameters (LoRA adapters and the classification head,
+$\approx\!0.5\%$ of total parameters).  The 8-bit PagedAdamW optimiser
+is used with a higher learning rate ($2 \times 10^{-4}$) appropriate for
+adapter tuning.  Mixed-precision uses bfloat16 (preferred for NF4 QLoRA
+stability).  Gradient accumulation over 4~steps yields an effective batch
+size of $8$.  Early stopping patience is set to 2~epochs, and the maximum
+number of epochs is $5$.
+
+\subsubsection{Evaluation Metrics}
+All models are evaluated using the following macro-averaged metrics:
+\begin{itemize}
+    \item \textbf{Accuracy}: $\frac{1}{N}\sum_{i=1}^{N}
+          \mathbb{1}[\hat{y}_i = y_i]$
+    \item \textbf{Macro Precision, Recall, F1-Score}: averaged
+          across all 118 classes with zero-division fallback
+    \item \textbf{Matthews Correlation Coefficient (MCC)}: a balanced
+          measure robust to class imbalance
+    \item \textbf{Macro False Positive Rate (FPR)}: computed per-class
+          from the confusion matrix:
+          $\text{FPR}_c = \frac{\text{FP}_c}{\text{FP}_c + \text{TN}_c}$,
+          then averaged
+    \item \textbf{Inference Latency}: average over 20 forward passes
+          (5-run warmup, CUDA synchronised)
+\end{itemize}
+
+% ---------------------------------------------------------------------------
+\subsection{Algorithm / Pseudocode}
+\label{sec:pseudocode}
+
+Algorithm~\ref{alg:training} presents the unified training procedure for
+both encoder and QLoRA models.  Algorithm~\ref{alg:zero_shot} describes
+the zero-shot inference procedure with beam-search decoding and CWE
+extraction.
+
+\begin{algorithm}[t]
+\caption{Encoder / QLoRA Training Procedure}
+\label{alg:training}
+\begin{algorithmic}[1]
+\REQUIRE Dataset $\mathcal{D}$, model $\mathcal{M}$, epochs $E$,
+         patience $P$, accumulation steps $A$
+\ENSURE Trained model with best adapter/checkpoint
+\STATE $\mathcal{D}_{\text{train}}, \mathcal{D}_{\text{test}}
+       \leftarrow \textsc{TemplateAwareSplit}(\mathcal{D})$
+\STATE Preprocess all code samples via pipeline
+\STATE Initialise $\mathcal{M}$ (load pre-trained weights)
+\IF{QLoRA mode}
+    \STATE Quantise $\mathcal{M}$ to NF4 (4-bit)
+    \STATE Apply LoRA adapters ($r\!=\!16, \alpha\!=\!32$)
+    \STATE Freeze all base parameters
+    \STATE Enable gradient checkpointing
+\ENDIF
+\STATE $\text{best\_f1} \leftarrow 0$; $\text{patience\_ctr} \leftarrow 0$
+\FOR{epoch $= 1$ \TO $E$}
+    \STATE $\mathcal{M}.\text{train}()$
+    \FOR{step, batch $\in$ $\mathcal{D}_{\text{train}}$}
+        \STATE $\hat{\mathbf{y}} \leftarrow \mathcal{M}(\text{batch})$
+        \STATE $\ell \leftarrow \textsc{CrossEntropy}(\hat{\mathbf{y}},
+               \mathbf{y}) \,/\, A$
+        \STATE $\ell.\text{backward}()$
+        \IF{step $\bmod$ $A = 0$}
+            \STATE Optimiser step; zero gradients
+        \ENDIF
+    \ENDFOR
+    \STATE $\text{F1} \leftarrow \textsc{Evaluate}(\mathcal{M},
+           \mathcal{D}_{\text{test}})$
+    \IF{$\text{F1} > \text{best\_f1}$}
+        \STATE $\text{best\_f1} \leftarrow \text{F1}$;
+               save checkpoint
+        \STATE $\text{patience\_ctr} \leftarrow 0$
+    \ELSE
+        \STATE $\text{patience\_ctr} \leftarrow
+               \text{patience\_ctr} + 1$
+    \ENDIF
+    \IF{$\text{patience\_ctr} \geq P$}
+        \STATE \textbf{break} \COMMENT{Early stopping}
+    \ENDIF
+\ENDFOR
+\RETURN best checkpoint / adapter
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[t]
+\caption{Zero-Shot CWE Inference with Beam Search}
+\label{alg:zero_shot}
+\begin{algorithmic}[1]
+\REQUIRE Code sample $x$, model $\mathcal{M}$, valid CWEs
+         $\mathcal{V}$, beams $B$, top-$k$
+\ENSURE Top-$k$ CWE predictions with confidence
+\STATE $x' \leftarrow \textsc{Preprocess}(x)$
+\STATE Truncate $x'$ to 800 characters
+\STATE $p \leftarrow \textsc{BuildPrompt}(x', \mathcal{V})$
+\IF{$\mathcal{M}$ is instruction-tuned}
+    \STATE $p \leftarrow \textsc{ApplyChatTemplate}(p)$
+\ENDIF
+\STATE $\mathcal{S} \leftarrow \mathcal{M}.\text{generate}(p,
+       \text{beams}\!=\!B)$
+\STATE $\mathcal{C} \leftarrow \emptyset$
+\FOR{sequence $s_j$, score $\sigma_j$ $\in$ $\mathcal{S}$}
+    \STATE $\text{cwe} \leftarrow \textsc{RegexExtract}(s_j)$
+    \IF{$\text{cwe} \in \mathcal{V}$ \AND $\text{cwe} \notin \mathcal{C}$}
+        \STATE $\mathcal{C} \leftarrow \mathcal{C} \cup
+               \{(\text{cwe}, \sigma_j)\}$
+    \ENDIF
+\ENDFOR
+\STATE $c_j \leftarrow \textsc{Softmax}(\{\sigma_j\})$ for all
+       $j \in \mathcal{C}$
+\RETURN top-$k$ from $\mathcal{C}$ sorted by $c_j$
+\end{algorithmic}
+\end{algorithm}

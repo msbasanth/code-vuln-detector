@@ -17,7 +17,7 @@ import torch
 from transformers import AutoTokenizer
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from src.predict import load_model, predict_code, predict_file
+from src.predict import load_model, predict_code, predict_file, load_qlora_model, predict_code_qlora
 from src.gemma_predict import load_zero_shot_model, predict_code_zero_shot
 from src.utils import load_config, get_device, load_label_map, count_parameters
 
@@ -145,13 +145,15 @@ CWE_DESCRIPTIONS = {
 
 
 @st.cache_resource
-def get_model(model_name: str, inference_only: bool = False):
+def get_model(model_name: str, inference_only: bool = False, qlora: bool = False):
     """Load model, tokenizer, and label map once (cached per model)."""
     config = load_config("config.yaml")
     config["model_name"] = model_name  # Override with selected model
     device = get_device()
     label_map = load_label_map(config["label_map_path"])
-    if inference_only:
+    if qlora:
+        model, tokenizer = load_qlora_model(config)
+    elif inference_only:
         model, tokenizer = load_zero_shot_model(model_name)
     else:
         model = load_model(config, device)
@@ -269,6 +271,8 @@ available_models = config_base.get("available_models", [
 model_options = {m["name"]: m["model_id"] for m in available_models}
 # Track which models are inference-only (no fine-tuning)
 inference_only_ids = {m["model_id"] for m in available_models if m.get("inference_only", False)}
+# Track which models are QLoRA fine-tuned
+qlora_ids = {m["model_id"] for m in available_models if m.get("qlora", False)}
 
 # --- Sidebar: navigation + branding ---
 st.sidebar.title("Navigation")
@@ -300,19 +304,27 @@ if nav_page == "The Detector":
             )
     selected_model_id = model_options[selected_model_name]
     is_inference_only = selected_model_id in inference_only_ids
+    is_qlora = selected_model_id in qlora_ids
 
     if is_inference_only:
         st.caption(f"Zero-shot · {selected_model_name} | 118 CWE categories")
+    elif is_qlora:
+        st.caption(f"QLoRA fine-tuned · {selected_model_name} | 118 CWE categories | Trained on NIST Juliet Test Suite v1.3")
     else:
         st.caption(f"Powered by {selected_model_name} | 118 CWE categories | Trained on NIST Juliet Test Suite v1.3")
 
     # Load model
     with st.spinner("Loading model..."):
         try:
-            model, tokenizer, label_map, device, config = get_model(selected_model_id, inference_only=is_inference_only)
+            model, tokenizer, label_map, device, config = get_model(
+                selected_model_id, inference_only=is_inference_only, qlora=is_qlora
+            )
         except FileNotFoundError as e:
             st.error(f"Model error: {e}")
-            st.info(f"Please train {selected_model_name} first using: `python -m src.train`")
+            if is_qlora:
+                st.info(f"Please train {selected_model_name} first using: `python -m src.train_qlora`")
+            else:
+                st.info(f"Please train {selected_model_name} first using: `python -m src.train`")
             st.stop()
         except Exception as e:
             st.error(f"Failed to load {selected_model_name}: {e}")
@@ -322,6 +334,7 @@ else:
     selected_model_name = list(model_options.keys())[0]
     selected_model_id = model_options[selected_model_name]
     is_inference_only = selected_model_id in inference_only_ids
+    is_qlora = selected_model_id in qlora_ids
     top_k = 5
     config = load_config("config.yaml")
     label_map = load_label_map(config["label_map_path"])
@@ -343,6 +356,11 @@ if nav_page == "The Detector":
                         results = predict_code_zero_shot(
                             code, model, tokenizer, selected_model_id, label_map, top_k=top_k,
                         )
+                    elif is_qlora:
+                        results = predict_code_qlora(
+                            code, model, tokenizer, label_map,
+                            max_length=config["max_length"], top_k=top_k,
+                        )
                     else:
                         results = predict_code(
                             code, model, tokenizer, label_map, device,
@@ -363,8 +381,13 @@ if nav_page == "The Detector":
             if st.button("Analyze", key="analyze_upload", type="primary"):
                 with st.spinner("Analyzing..."):
                     if is_inference_only:
-                        results = predict_code_gemma(
-                            code, model, tokenizer, label_map, top_k=top_k,
+                        results = predict_code_zero_shot(
+                            code, model, tokenizer, selected_model_id, label_map, top_k=top_k,
+                        )
+                    elif is_qlora:
+                        results = predict_code_qlora(
+                            code, model, tokenizer, label_map,
+                            max_length=config["max_length"], top_k=top_k,
                         )
                     else:
                         results = predict_code(
@@ -394,8 +417,15 @@ if nav_page == "The Detector":
                         if is_inference_only:
                             with open(fpath, "r", errors="replace") as fh:
                                 file_code = fh.read()
-                            results = predict_code_gemma(
-                                file_code, model, tokenizer, label_map, top_k=1,
+                            results = predict_code_zero_shot(
+                                file_code, model, tokenizer, selected_model_id, label_map, top_k=1,
+                            )
+                        elif is_qlora:
+                            with open(fpath, "r", errors="replace") as fh:
+                                file_code = fh.read()
+                            results = predict_code_qlora(
+                                file_code, model, tokenizer, label_map,
+                                max_length=config["max_length"], top_k=1,
                             )
                         else:
                             results = predict_file(
@@ -633,7 +663,9 @@ if nav_page == "Test Environment":
         "fine-tuned lightweight large language models. The study uses the "
         "**Juliet C/C++ 1.3 Test Suite** and evaluates models such as "
         "CodeT5-base, CodeBERT-base, GraphCodeBERT-base, CodeGemma-2B, and "
-        "Gemma 4 E2B IT. Performance is measured using Accuracy, Precision, "
+        "Gemma 4 E2B IT. CodeGemma-2B is also available as a QLoRA "
+        "fine-tuned model using 4-bit quantization and LoRA adapters. "
+        "Performance is measured using Accuracy, Precision, "
         "Recall, F1-score, MCC, and False Positive Rate. The system is "
         "designed to support efficient and cost-effective vulnerability "
         "detection and to demonstrate inference on C/C++ code snippets."
@@ -667,6 +699,7 @@ if nav_page == "Test Environment":
 | **Deep Learning** | PyTorch |
 | **Model Library** | Hugging Face Transformers |
 | **Quantization** | bitsandbytes (NF4 4-bit) |
+| **Fine-tuning** | PEFT / LoRA (QLoRA) |
 | **Acceleration** | Hugging Face Accelerate |
 """
         )
@@ -692,7 +725,7 @@ if nav_page == "Test Environment":
             """
 | Item | Detail |
 |---|---|
-| **Candidate Models** | CodeT5-base, CodeBERT-base, GraphCodeBERT-base, CodeGemma-2B, Gemma 4 E2B IT |
+| **Candidate Models** | CodeT5-base, CodeBERT-base, GraphCodeBERT-base, CodeGemma-2B (Zero-shot & QLoRA), Gemma 4 E2B IT |
 | **Evaluation Metrics** | Accuracy, Precision, Recall, F1-score, MCC, False Positive Rate |
 """
         )

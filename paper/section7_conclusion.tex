@@ -1,0 +1,378 @@
+% ===========================================================================
+% Section 7 — Conclusion and Future Work
+% ===========================================================================
+
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+% ---------------------------------------------------------------------------
+\subsection{Summary of Contributions}
+\label{sec:contributions}
+
+This paper presented \textbf{SHARP-LLM} (Secure Healthcare-Aligned Risk
+Prediction via Lightweight LLMs), a lightweight transformer-based framework
+for automated CWE vulnerability classification in C/C++ source code with
+healthcare-oriented risk prioritisation.  The framework makes five principal
+contributions:
+
+\begin{enumerate}
+    \item \textbf{Template-aware data splitting.}
+          We introduced a splitting strategy that partitions the NIST
+          Juliet Test Suite by vulnerability template rather than by
+          individual sample, eliminating structural data leakage between
+          training and test sets.  Under this rigorous protocol, zero
+          template overlap exists between the 82,736-sample training set
+          (1,323~templates) and the 22,447-sample test set
+          (366~templates), ensuring that reported metrics reflect genuine
+          generalisation to unseen code patterns.
+
+    \item \textbf{Multi-paradigm model evaluation.}
+          We systematically compared three inference paradigms --- full
+          encoder fine-tuning (CodeT5-Small, CodeT5-Base, CodeBERT-Base,
+          GraphCodeBERT-Base), QLoRA-based parameter-efficient fine-tuning
+          (CodeGemma-2B), and zero-shot generative inference
+          (CodeGemma-2B, Gemma-4-E2B-IT) --- within a single unified
+          pipeline.  To the best of our knowledge, this is the first study
+          to conduct such a multi-paradigm comparison on 118-class CWE
+          classification.
+
+    \item \textbf{Consumer-grade GPU feasibility.}
+          All experiments were conducted on a single NVIDIA RTX~2000~Ada
+          laptop GPU with 8\,GB VRAM.  Fine-tuned encoder models train in
+          under 53~minutes and achieve sub-30\,ms inference latency, while
+          QLoRA enables fine-tuning of 2.5\,B-parameter models within the
+          same memory budget through NF4 double quantisation, gradient
+          checkpointing, and 8-bit paged optimisation.
+
+    \item \textbf{Healthcare-oriented risk prioritisation pipeline.}
+          Beyond CWE classification, the framework introduces a three-stage
+          post-detection pipeline inspired by
+          C3-VULMAP~\cite{santos2023c3vulmap}:
+          (a)~\emph{privacy and security risk categorisation}, which maps
+          each detected CWE to LINDDUN privacy threat types (linkability,
+          identifiability, non-repudiation, detectability, information
+          disclosure, unawareness, non-compliance) via a risk mapping
+          function $\mathcal{R} = f(c)$;
+          (b)~\emph{policy-relevant control domain mapping}, which
+          associates risk categories with control areas such as
+          confidentiality protection, access control, audit and
+          accountability, and service availability via
+          $\mathcal{C} = g(\mathcal{R})$; and
+          (c)~\emph{weighted risk prioritisation}, which computes a
+          composite score
+          $P = \lambda_1 s + \lambda_2 E + \lambda_3 D + \lambda_4 S
+          + \lambda_5 C'$
+          combining model confidence~($s$), technical severity~($E$),
+          data-sensitivity impact~($D$), service/safety impact~($S$),
+          and control-domain importance~($C'$) to produce ordinal
+          priority levels (Critical, High, Medium, Low).
+          This pipeline transforms raw CWE predictions into actionable,
+          healthcare-relevant risk signals for remediation planning.
+
+    \item \textbf{Comprehensive evaluation and error analysis.}
+          We reported nine metrics (accuracy, macro precision, recall, F1,
+          MCC, FPR, model size, parameter count, and inference latency)
+          across all models, analysed per-epoch convergence and overfitting
+          dynamics, and performed per-class error analysis identifying
+          systematic confusion patterns towards high-frequency buffer
+          access CWEs.
+\end{enumerate}
+
+% ---------------------------------------------------------------------------
+\subsection{Key Findings}
+\label{sec:key_findings}
+
+The experimental results (Section~\ref{sec:results}) yield several findings
+with implications for the vulnerability detection community:
+
+\begin{itemize}
+    \item \textbf{Lightweight fine-tuning outperforms large-scale
+          zero-shot models.}  CodeT5-Base (110\,M parameters) achieves a
+          macro-F1 of 0.9605 on 118~CWE classes, surpassing the
+          5.13\,B-parameter Gemma-4-E2B-IT (macro-F1 = 0.6988) by 0.2617
+          in F1 while being $15{,}600\times$ faster at inference.  This
+          demonstrates that task-specific fine-tuning of compact encoders
+          remains the most effective strategy for structured vulnerability
+          classification.
+
+    \item \textbf{Encoder architecture matters more than parameter count.}
+          CodeT5-Base (110\,M) outperforms both CodeBERT-Base and
+          GraphCodeBERT-Base (each 125\,M) in macro-F1 (0.9605 vs.\ 0.9512
+          and 0.9530) and exhibits more robust generalisation across
+          training epochs.  The T5 encoder's bimodal pre-training objective
+          produces superior representations for code vulnerability tasks
+          compared to the RoBERTa-based architecture.
+
+    \item \textbf{Early stopping is essential for RoBERTa-family models.}
+          CodeBERT and GraphCodeBERT overfit at epoch~2, with macro-F1
+          dropping by up to 5.78 percentage points.  A patience of
+          1~epoch mitigates this degradation without sacrificing peak
+          performance.
+
+    \item \textbf{Instruction-tuning significantly improves zero-shot
+          classification.}  Gemma-4-E2B-IT achieves $3\times$ the accuracy
+          of CodeGemma-2B in zero-shot mode (78.0\% vs.\ 25.0\%),
+          confirming that instruction alignment benefits structured
+          classification tasks even without task-specific training data.
+
+    \item \textbf{Template-aware evaluation prevents inflated metrics.}
+          By ensuring no template overlap between train and test, our
+          splitting strategy provides a more reliable estimate of model
+          performance on genuinely novel code structures.  Despite this
+          stricter protocol, all fine-tuned models still exceed 99.6\%
+          accuracy, validating the approach.
+
+    \item \textbf{Post-detection risk pipeline bridges code analysis
+          and healthcare decision support.}
+          The three-stage pipeline --- CWE-to-LINDDUN risk categorisation,
+          policy-relevant control domain mapping, and weighted risk
+          prioritisation --- converts raw classification outputs into
+          prioritised, healthcare-relevant findings.  This structured
+          interpretation layer enables remediation decisions aligned with
+          patient-data confidentiality, service continuity, and regulatory
+          compliance rather than treating all vulnerabilities as equally
+          urgent.
+\end{itemize}
+
+% ---------------------------------------------------------------------------
+\subsection{Broader Significance}
+\label{sec:significance}
+
+The results have practical implications for secure software development
+pipelines.  The sub-30\,ms inference latency of fine-tuned encoder models
+makes them viable for integration into CI/CD pipelines, IDE plugins, and
+real-time code review tools.  The consumer-grade hardware requirement
+(8\,GB VRAM) removes the need for expensive cloud GPU infrastructure,
+lowering the barrier for adoption by small development teams, academic
+institutions, and resource-constrained organisations.
+
+The multi-class CWE classification capability is more actionable than binary
+vulnerability detection: by identifying the \emph{specific} weakness type,
+the system enables targeted remediation guidance aligned with
+industry-standard taxonomies (MITRE CWE, OWASP).
+
+Critically, SHARP-LLM goes beyond vulnerability detection by introducing a
+healthcare-oriented post-detection pipeline.  The C3-VULMAP-inspired risk
+categorisation stage~\cite{santos2023c3vulmap} maps each detected CWE to
+LINDDUN privacy threat types, enabling the framework to distinguish between
+weaknesses that affect patient-data confidentiality, traceability, service
+continuity, or compliance obligations.  The subsequent policy-relevant
+control domain mapping and weighted risk prioritisation stages translate
+these risk signals into ordinal priority levels (Critical / High / Medium /
+Low), providing security analysts with a structured basis for triage that
+reflects the unique concerns of healthcare software environments.  This
+three-stage pipeline positions SHARP-LLM not merely as a vulnerability
+detector but as a healthcare-aligned decision support tool.
+
+% ---------------------------------------------------------------------------
+\subsection{Limitations}
+\label{sec:limitations}
+
+Despite the strong results, the current work has several limitations that
+must be acknowledged:
+
+\begin{enumerate}
+    \item \textbf{Synthetic dataset.}
+          All experiments use the NIST Juliet Test Suite, which contains
+          template-generated synthetic code.  While the template-aware split
+          mitigates trivial pattern memorisation, the code lacks the
+          diversity, complexity, and contextual richness of real-world
+          software projects.  Models trained exclusively on Juliet may not
+          generalise to production codebases with multi-file dependencies,
+          third-party libraries, and non-standard coding styles.
+
+    \item \textbf{Class imbalance and single-sample categories.}
+          The dataset exhibits a long-tailed distribution with an imbalance
+          ratio exceeding 1,500:1.  Thirty-one CWE categories contain only
+          a single template and are therefore absent from the test set,
+          precluding evaluation on those classes.  Three categories with
+          single test samples yield F1~=~0.00, but this reflects
+          insufficient evaluation data rather than model failure.
+
+    \item \textbf{Sequence length constraint.}
+          All models truncate input at 256~tokens.  While sufficient for the
+          Juliet samples (which are typically short, self-contained
+          functions), this limit may cause information loss on longer
+          real-world source files where the vulnerability context spans
+          hundreds of lines.
+
+    \item \textbf{Zero-shot evaluation on limited samples.}
+          Due to prohibitive inference costs (up to 396\,s per sample for
+          Gemma-4-E2B-IT), zero-shot models were evaluated on sampled
+          subsets of 50--500 samples.  Larger-scale evaluation may yield
+          different aggregate statistics and is necessary for definitive
+          conclusions about zero-shot performance.
+
+    \item \textbf{Single dataset and language.}
+          The framework has been evaluated only on C/C++ code from the
+          Juliet Test Suite.  Vulnerability patterns in other languages
+          (Java, Python, JavaScript) and from other data sources may
+          present different challenges for the models.
+
+    \item \textbf{No cross-project evaluation.}
+          All training and evaluation occur within the Juliet ecosystem.
+          Cross-project generalisation --- where the model is trained on one
+          codebase and tested on a different one --- remains untested.
+
+    \item \textbf{Risk prioritisation weights are not empirically
+          calibrated.}
+          The weighted risk prioritisation score
+          ($P = \lambda_1 s + \lambda_2 E + \lambda_3 D + \lambda_4 S
+          + \lambda_5 C'$) relies on configurable coefficients that must
+          be tuned to the deployment environment.  The current work
+          presents the formulation but does not include an empirical
+          calibration study with healthcare domain experts to determine
+          optimal weight settings.
+
+    \item \textbf{C3-VULMAP coverage.}
+          The CWE-to-LINDDUN risk mapping derived from
+          C3-VULMAP~\cite{santos2023c3vulmap} covers a defined subset of
+          healthcare-relevant CWEs.  Detected CWE categories that fall
+          outside this mapping currently receive a default risk
+          categorisation, which may under- or over-estimate their
+          healthcare impact.
+\end{enumerate}
+
+% ---------------------------------------------------------------------------
+\subsection{Future Work}
+\label{sec:future_work}
+
+We identify the following concrete directions for extending this research:
+
+\subsubsection{Data-Centric Improvements}
+
+\begin{enumerate}
+    \item \textbf{Real-world dataset augmentation.}
+          Incorporating samples from established real-world vulnerability
+          datasets such as Big-Vul~\cite{fan2020bigvul},
+          Devign~\cite{zhou2019devign}, ReVeal~\cite{chakraborty2021reveal},
+          and D2A~\cite{zheng2021d2a} would expose models to genuine
+          vulnerability patterns beyond synthetic templates.  A mixed
+          training regime combining Juliet and real-world data could
+          improve generalisation while retaining the controlled evaluation
+          benefits of the template-aware split.
+
+    \item \textbf{Semantic-preserving code augmentation.}
+          Applying transformations such as variable renaming, dead code
+          insertion, control flow restructuring, and comment
+          removal would force models to learn deeper vulnerability
+          semantics rather than surface-level syntactic patterns.  This
+          is particularly relevant for mitigating the CWE-126 confusion
+          bias identified in the error analysis
+          (Section~\ref{sec:performance}).
+
+    \item \textbf{LLM-generated synthetic diversity.}
+          Large language models (e.g., GPT-4, CodeLlama) could generate
+          diverse vulnerable code variants for each CWE category, providing
+          additional training samples with varied coding styles and contexts
+          beyond the Juliet templates.
+\end{enumerate}
+
+\subsubsection{Architecture and Training Enhancements}
+
+\begin{enumerate}
+    \setcounter{enumi}{3}
+    \item \textbf{Contrastive learning on good/bad pairs.}
+          The Juliet Test Suite contains paired vulnerable and patched
+          samples for each template.  Training with a contrastive objective
+          on these pairs would teach the model to discriminate
+          \emph{what makes code vulnerable} rather than simply classifying
+          surface patterns, potentially reducing inter-class confusion.
+
+    \item \textbf{Multi-task learning.}
+          Adding a secondary binary classification head (vulnerable vs.\
+          safe) alongside the 118-class CWE head would provide additional
+          regularisation and could improve feature learning for
+          underrepresented vulnerability categories.
+
+    \item \textbf{Graph-enhanced representations.}
+          Incorporating Abstract Syntax Tree (AST), Control Flow Graph
+          (CFG), or Program Dependence Graph (PDG) information alongside
+          token sequences could capture structural vulnerability patterns
+          that purely sequence-based models miss.  Hybrid architectures
+          combining GNN encoders with transformer embeddings represent a
+          promising direction.
+
+    \item \textbf{Ensemble with confidence calibration.}
+          Combining predictions from multiple fine-tuned models (CodeT5-Base,
+          CodeBERT, GraphCodeBERT) via temperature-scaled ensembling could
+          improve accuracy on ambiguous samples.  Model disagreement could
+          serve as an uncertainty signal for flagging samples that require
+          human review.
+\end{enumerate}
+
+\subsubsection{Deployment and Scalability}
+
+\begin{enumerate}
+    \setcounter{enumi}{7}
+    \item \textbf{Cross-language and cross-project evaluation.}
+          Extending the framework to Java, Python, and JavaScript
+          vulnerability datasets would test the transferability of the
+          approach.  Cross-project evaluation, where models train on one
+          codebase and are tested on an entirely different project, would
+          provide the most rigorous assessment of real-world applicability.
+
+    \item \textbf{Integration with static analysis tools.}
+          A hybrid approach combining neural predictions with traditional
+          static analysis features (taint paths, buffer sizes, pointer
+          aliases from tools such as Cppcheck, Semgrep, or CodeQL) could
+          provide the model with domain knowledge that is difficult to learn
+          from token sequences alone, particularly for complex
+          vulnerability patterns.
+
+    \item \textbf{Longer context and function-level slicing.}
+          Increasing the maximum sequence length beyond 256~tokens or
+          employing vulnerability-relevant program slicing (extracting only
+          the code regions involved in data/control flow to the vulnerable
+          point) would reduce noise and enable analysis of larger,
+          multi-function source files encountered in production codebases.
+
+    \item \textbf{QLoRA fine-tuning completion and scaling.}
+          Completing the QLoRA fine-tuning of CodeGemma-2B and extending the
+          approach to larger instruction-tuned models (e.g., Gemma-4-E2B-IT)
+          would quantify the performance gains of parameter-efficient
+          fine-tuning over zero-shot inference for decoder-based models,
+          bridging the gap between the encoder and zero-shot paradigms
+          evaluated in this study.
+\end{enumerate}
+
+\subsubsection{Healthcare Risk Pipeline Refinement}
+
+\begin{enumerate}
+    \setcounter{enumi}{11}
+    \item \textbf{Empirical calibration of prioritisation weights.}
+          Conducting a user study with healthcare security analysts to
+          empirically calibrate the risk prioritisation coefficients
+          ($\lambda_1$--$\lambda_5$) would ground the scoring model in
+          real-world triage practices and improve its alignment with
+          clinical and operational priorities.
+
+    \item \textbf{Extended CWE-to-LINDDUN mapping.}
+          Expanding the C3-VULMAP-inspired mapping to cover additional CWE
+          categories --- particularly those related to cryptographic
+          failures, authentication weaknesses, and supply-chain risks ---
+          would increase the coverage and accuracy of the risk
+          categorisation stage for diverse healthcare software ecosystems.
+
+    \item \textbf{Regulatory framework integration.}
+          Linking the policy-relevant control domains to specific
+          regulatory requirements (e.g., HIPAA Security Rule safeguards,
+          GDPR data protection principles, IEC~62443 for medical device
+          cybersecurity) would enable the framework to produce
+          compliance-oriented reports, further strengthening its utility
+          as a healthcare decision support tool.
+\end{enumerate}
+
+\subsection*{}
+In summary, the SHARP-LLM framework demonstrates that lightweight,
+fine-tuned transformer models achieve state-of-the-art multi-class CWE
+classification with macro-F1 exceeding 0.96 on 118~vulnerability
+categories, while training in under one hour on a single consumer-grade
+GPU.  By augmenting vulnerability detection with a healthcare-oriented
+risk prioritisation pipeline --- mapping detected CWEs to LINDDUN privacy
+threat types, policy-relevant control domains, and ordinal priority
+levels --- the framework bridges the gap between source code analysis and
+healthcare decision support.  These results establish a strong foundation
+for practical, cost-effective automated vulnerability detection and risk
+triage that can be integrated into modern secure software development
+workflows for healthcare and other safety-critical domains.

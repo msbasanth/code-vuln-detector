@@ -28,11 +28,11 @@ from sklearn.metrics import (
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.data.dataset import get_dataloaders
-from src.model import CWEClassifier
+from src.model import CWEClassifier, load_qlora_for_inference
 from src.utils import load_config, setup_logging, get_device, load_label_map
 
 
-def predict_all(model, dataloader, device):
+def predict_all(model, dataloader, device, is_qlora=False):
     """Run inference on all samples, return predictions and labels."""
     model.eval()
     all_preds = []
@@ -44,8 +44,12 @@ def predict_all(model, dataloader, device):
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["label"]
 
-            logits = model(input_ids, attention_mask)
-            preds = logits.argmax(dim=-1).cpu()
+            if is_qlora:
+                outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                preds = outputs.logits.argmax(dim=-1).cpu()
+            else:
+                logits = model(input_ids, attention_mask)
+                preds = logits.argmax(dim=-1).cpu()
 
             all_preds.extend(preds.tolist())
             all_labels.extend(labels.tolist())
@@ -75,9 +79,12 @@ def main():
     parser = argparse.ArgumentParser(description="Evaluate CWE classifier")
     parser.add_argument("--config", default="config.yaml", help="Config file path")
     parser.add_argument("--checkpoint", default=None, help="Checkpoint path (default: best.pt)")
+    parser.add_argument("--qlora", action="store_true", help="Evaluate QLoRA model instead of encoder model")
     args = parser.parse_args()
 
     config = load_config(args.config)
+    if args.qlora:
+        config["qlora_eval"] = True
     logger = setup_logging()
     device = get_device()
 
@@ -87,25 +94,71 @@ def main():
     label_names = [f"CWE-{inv_label_map[i]}" for i in range(len(label_map))]
 
     # Load model
-    checkpoint_path = args.checkpoint or os.path.join(config["checkpoint_dir"], "best.pt")
-    logger.info(f"Loading checkpoint: {checkpoint_path}")
+    is_qlora = config.get("qlora_eval", False)
+    if is_qlora or args.checkpoint and "qlora" in args.checkpoint:
+        # QLoRA model evaluation
+        qlora_model_entry = None
+        for m in config.get("available_models", []):
+            if m.get("qlora", False):
+                qlora_model_entry = m
+                break
+        if qlora_model_entry is None:
+            raise ValueError("No model with 'qlora: true' found in available_models")
 
-    model = CWEClassifier(
-        model_name=config["model_name"],
-        num_classes=config["num_classes"],
-        dropout=config["dropout"],
-    )
-    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    model.load_state_dict(ckpt["model_state_dict"])
-    model.to(device)
+        model_id = qlora_model_entry["model_id"]
+        variant = model_id.split("/")[-1] + "-qlora"
+        adapter_path = args.checkpoint or os.path.join(config["checkpoint_dir"], variant, "best_adapter")
+        logger.info(f"Loading QLoRA model: {model_id} from {adapter_path}")
 
-    logger.info(f"Checkpoint epoch: {ckpt['epoch']}, F1: {ckpt.get('test_f1', 'N/A')}")
+        model, qlora_tokenizer = load_qlora_for_inference(
+            model_id=model_id,
+            num_classes=config["num_classes"],
+            adapter_path=adapter_path,
+        )
 
-    # Load test data
-    _, test_loader, _ = get_dataloaders(config)
+        # Load QLoRA training state for epoch info
+        state_path = os.path.join(config["checkpoint_dir"], variant, "best.pt")
+        if os.path.exists(state_path):
+            ckpt = torch.load(state_path, map_location="cpu", weights_only=False)
+            logger.info(f"Checkpoint epoch: {ckpt.get('epoch', 'N/A')}, F1: {ckpt.get('test_f1', 'N/A')}")
+
+        # Build dataloaders with QLoRA tokenizer
+        from src.data.dataset import CWEDataset
+        from torch.utils.data import DataLoader
+        test_df = pd.read_parquet(config["test_path"])
+        test_dataset = CWEDataset(
+            codes=test_df["code"].tolist(),
+            labels=test_df["label"].tolist(),
+            tokenizer=qlora_tokenizer,
+            max_length=config["max_length"],
+        )
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size=config.get("qlora", {}).get("per_device_batch_size", 2),
+            shuffle=False,
+            num_workers=config.get("num_workers", 0),
+            pin_memory=config.get("pin_memory", True),
+        )
+    else:
+        checkpoint_path = args.checkpoint or os.path.join(config["checkpoint_dir"], "best.pt")
+        logger.info(f"Loading checkpoint: {checkpoint_path}")
+
+        model = CWEClassifier(
+            model_name=config["model_name"],
+            num_classes=config["num_classes"],
+            dropout=config["dropout"],
+        )
+        ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
+        model.load_state_dict(ckpt["model_state_dict"])
+        model.to(device)
+
+        logger.info(f"Checkpoint epoch: {ckpt['epoch']}, F1: {ckpt.get('test_f1', 'N/A')}")
+
+        # Load test data
+        _, test_loader, _ = get_dataloaders(config)
 
     # Predict
-    all_preds, all_labels = predict_all(model, test_loader, device)
+    all_preds, all_labels = predict_all(model, test_loader, device, is_qlora=is_qlora)
 
     # Overall metrics
     metrics = {

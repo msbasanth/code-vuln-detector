@@ -30,7 +30,7 @@ from sklearn.metrics import (
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from src.data.dataset import get_dataloaders
 from src.gemma_predict import load_zero_shot_model, predict_code_zero_shot, _is_instruction_tuned
-from src.model import CWEClassifier
+from src.model import CWEClassifier, load_qlora_for_inference
 from src.utils import load_config, get_device, load_label_map, count_parameters
 
 
@@ -182,6 +182,128 @@ for display_name, model_id in MODELS:
 
     # Free GPU memory
     del model
+    torch.cuda.empty_cache()
+
+# ── QLoRA fine-tuned models ─────────────────────────────────────────────────
+QLORA_MODELS = [
+    ("CodeGemma-2B (QLoRA)", "google/codegemma-1.1-2b"),
+]
+
+for display_name, model_id in QLORA_MODELS:
+    variant = model_id.split("/")[-1] + "-qlora"
+    adapter_path = os.path.join(config["checkpoint_dir"], variant, "best_adapter")
+    state_path = os.path.join(config["checkpoint_dir"], variant, "best.pt")
+
+    if not os.path.exists(adapter_path):
+        print(f"\n{display_name}: adapter not found at {adapter_path}, skipping.")
+        continue
+
+    print(f"\n{'='*60}")
+    print(f"Evaluating (QLoRA): {display_name} ({model_id})")
+    print(f"{'='*60}")
+
+    qlora_model, qlora_tokenizer = load_qlora_for_inference(
+        model_id=model_id,
+        num_classes=num_classes,
+        adapter_path=adapter_path,
+    )
+
+    # Load training state
+    qlora_ckpt = torch.load(state_path, map_location="cpu", weights_only=False) if os.path.exists(state_path) else {}
+    best_epoch = qlora_ckpt.get("epoch", "N/A")
+    training_time_s = qlora_ckpt.get("training_time", None)
+
+    # Parameter count (trainable via PEFT)
+    params = count_parameters(qlora_model)
+
+    # Build test dataloader with QLoRA tokenizer
+    from src.data.dataset import CWEDataset
+    from torch.utils.data import DataLoader
+    import pandas as pd
+
+    _test_df_qlora = pd.read_parquet(config["test_path"])
+    _test_dataset = CWEDataset(
+        codes=_test_df_qlora["code"].tolist(),
+        labels=_test_df_qlora["label"].tolist(),
+        tokenizer=qlora_tokenizer,
+        max_length=config["max_length"],
+    )
+    qlora_test_loader = DataLoader(
+        _test_dataset,
+        batch_size=config.get("qlora", {}).get("per_device_batch_size", 2),
+        shuffle=False,
+        num_workers=config.get("num_workers", 0),
+        pin_memory=config.get("pin_memory", True),
+    )
+
+    # Predict
+    def predict_all_qlora(model, dataloader, device):
+        model.eval()
+        all_preds, all_labels = [], []
+        with torch.no_grad():
+            for batch in tqdm(dataloader, desc="QLoRA eval", leave=False):
+                input_ids = batch["input_ids"].to(device)
+                attention_mask = batch["attention_mask"].to(device)
+                outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                all_preds.extend(outputs.logits.argmax(dim=-1).cpu().tolist())
+                all_labels.extend(batch["label"].tolist())
+        return all_preds, all_labels
+
+    y_pred, y_true = predict_all_qlora(qlora_model, qlora_test_loader, device)
+
+    # Latency measurement
+    _enc = qlora_tokenizer(SAMPLE_CODE, max_length=config["max_length"],
+                           padding="max_length", truncation=True, return_tensors="pt")
+    _ids = _enc["input_ids"].to(device)
+    _mask = _enc["attention_mask"].to(device)
+    with torch.no_grad():
+        for _ in range(3):
+            qlora_model(input_ids=_ids, attention_mask=_mask)
+    latencies = []
+    with torch.no_grad():
+        for _ in range(20):
+            t0 = time.perf_counter()
+            qlora_model(input_ids=_ids, attention_mask=_mask)
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            latencies.append(time.perf_counter() - t0)
+    avg_latency_ms = np.mean(latencies) * 1000
+    del _enc, _ids, _mask
+
+    # Metrics
+    acc = accuracy_score(y_true, y_pred)
+    prec = precision_score(y_true, y_pred, average="macro", zero_division=0)
+    rec = recall_score(y_true, y_pred, average="macro", zero_division=0)
+    f1 = f1_score(y_true, y_pred, average="macro", zero_division=0)
+    mcc = matthews_corrcoef(y_true, y_pred)
+    fpr = macro_fpr(y_true, y_pred, num_classes)
+
+    # Adapter size
+    adapter_size_mb = sum(
+        os.path.getsize(os.path.join(adapter_path, f))
+        for f in os.listdir(adapter_path)
+        if os.path.isfile(os.path.join(adapter_path, f))
+    ) / (1024 * 1024)
+
+    results.append({
+        "Model": display_name,
+        "model_id": model_id,
+        "qlora": True,
+        "Parameters": params["total"],
+        "Size (MB)": round(adapter_size_mb, 1),
+        "Best Epoch": best_epoch,
+        "Training Time (s)": round(training_time_s, 1) if training_time_s else "N/A",
+        "Accuracy": acc,
+        "Precision": prec,
+        "Recall": rec,
+        "F1-Score": f1,
+        "MCC": mcc,
+        "FPR": fpr,
+        "Latency (ms)": round(avg_latency_ms, 2),
+    })
+
+    del qlora_model, qlora_tokenizer
+    gc.collect()
     torch.cuda.empty_cache()
 
 # ── Zero-shot models ────────────────────────────────────────────────────────
