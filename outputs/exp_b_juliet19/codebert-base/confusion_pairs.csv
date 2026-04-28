@@ -1,0 +1,4 @@
+actual,predicted,count
+CWE-400,CWE-190,8
+CWE-134,CWE-190,2
+CWE-369,CWE-190,2

@@ -1,0 +1,9 @@
+{
+  "source": "bigvul",
+  "sample_count": 1701,
+  "accuracy": 0.22810111699000588,
+  "macro_precision": 0.10928298937116866,
+  "macro_recall": 0.0732173445959546,
+  "macro_f1": 0.07299684937398886,
+  "weighted_f1": 0.21426378293655954
+}

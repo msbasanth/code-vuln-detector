@@ -1,0 +1,44 @@
+{
+  "model": "microsoft/graphcodebert-base",
+  "model_variant": "graphcodebert-base",
+  "epoch_metrics": [
+    {
+      "epoch": 1,
+      "train_loss": 0.041557,
+      "test_loss": 0.002929,
+      "test_acc": 0.999448,
+      "test_f1": 0.894297,
+      "test_precision": 0.894015,
+      "test_recall": 0.894584,
+      "best_f1_so_far": 0.894297,
+      "best_acc_so_far": 0.999448,
+      "best_precision_so_far": 0.894015,
+      "best_recall_so_far": 0.894584,
+      "training_time_seconds": 428.9
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.009202,
+      "test_loss": 0.002413,
+      "test_acc": 0.999724,
+      "test_f1": 0.947248,
+      "test_precision": 0.947281,
+      "test_recall": 0.947215,
+      "best_f1_so_far": 0.947248,
+      "best_acc_so_far": 0.999724,
+      "best_precision_so_far": 0.947281,
+      "best_recall_so_far": 0.947215,
+      "training_time_seconds": 1012.1
+    }
+  ],
+  "best_metrics": {
+    "best_f1": 0.9472479008906433,
+    "best_acc": 0.9997240618101545,
+    "best_precision": 0.9472806397750517,
+    "best_recall": 0.9472154222766218,
+    "best_f1_epoch": 2,
+    "best_acc_epoch": 2,
+    "best_precision_epoch": 2,
+    "best_recall_epoch": 2
+  }
+}

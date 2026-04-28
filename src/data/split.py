@@ -2,6 +2,9 @@
 
 Implements the key contribution from the paper: splitting by template groups
 (not individual samples) to prevent structural data leakage.
+
+Also supports combined Juliet + Big-Vul datasets, where Big-Vul samples
+are grouped by project+commit to prevent commit-level leakage.
 """
 
 import json
@@ -80,20 +83,35 @@ def build_label_map(df: pd.DataFrame) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="Template-aware dataset split")
     parser.add_argument("--config", default="config.yaml", help="Config file path")
+    parser.add_argument("--combined", default=None,
+                        help="Path to combined (merged) samples parquet. "
+                             "If provided, splits the combined dataset instead of Juliet-only.")
+    parser.add_argument("--output-prefix", default=None,
+                        help="Output file prefix (e.g. 'juliet19' → juliet19_train.parquet). "
+                             "Overrides default output paths for experiment isolation.")
     args = parser.parse_args()
 
     config = load_config(args.config)
     logger = setup_logging()
 
-    # Load extracted samples
-    samples_path = config["samples_path"]
+    experiment = config.get("experiment", {})
+
+    # Determine input: combined dataset or Juliet-only
+    if args.combined:
+        samples_path = args.combined
+    else:
+        samples_path = config["samples_path"]
+
     logger.info(f"Loading samples from {samples_path}")
     df = pd.read_parquet(samples_path)
     logger.info(f"Loaded {len(df)} samples")
 
-    # Preprocess code
-    logger.info("Preprocessing code samples...")
-    df["code"] = df["code"].apply(preprocess)
+    # Preprocess only if source column is absent (Juliet-only, raw samples)
+    # Combined datasets are already preprocessed by merge_datasets.py
+    if "source" not in df.columns:
+        logger.info("Preprocessing code samples (Juliet-only mode)...")
+        df["code"] = df["code"].apply(preprocess)
+        df["source"] = "juliet"
 
     # Remove empty samples after preprocessing
     empty_mask = df["code"].str.strip().eq("")
@@ -109,16 +127,31 @@ def main():
     # Template-aware split
     train_df, test_df = template_aware_split(df, test_size=0.2, seed=config["seed"])
 
+    # Determine output paths
+    if args.output_prefix:
+        prefix = args.output_prefix
+        train_path = f"data/processed/{prefix}_train.parquet"
+        test_path = f"data/processed/{prefix}_test.parquet"
+        label_map_path = f"data/processed/{prefix}_label_map.json"
+    elif args.combined:
+        train_path = experiment.get("combined_train_path", "data/processed/combined_train.parquet")
+        test_path = experiment.get("combined_test_path", "data/processed/combined_test.parquet")
+        label_map_path = experiment.get("combined_label_map_path", "data/processed/combined_label_map.json")
+    else:
+        train_path = config["train_path"]
+        test_path = config["test_path"]
+        label_map_path = config["label_map_path"]
+
     # Save outputs
-    os.makedirs(os.path.dirname(config["train_path"]), exist_ok=True)
+    os.makedirs(os.path.dirname(train_path), exist_ok=True)
 
-    train_df.to_parquet(config["train_path"], index=False)
-    test_df.to_parquet(config["test_path"], index=False)
-    save_label_map(label_map, config["label_map_path"])
+    train_df.to_parquet(train_path, index=False)
+    test_df.to_parquet(test_path, index=False)
+    save_label_map(label_map, label_map_path)
 
-    logger.info(f"Saved train set to {config['train_path']}")
-    logger.info(f"Saved test set to {config['test_path']}")
-    logger.info(f"Saved label map to {config['label_map_path']}")
+    logger.info(f"Saved train set to {train_path}")
+    logger.info(f"Saved test set to {test_path}")
+    logger.info(f"Saved label map to {label_map_path}")
 
     # Summary statistics
     print("\n--- Split Summary ---")
@@ -128,6 +161,9 @@ def main():
     print(f"CWE classes:   {len(label_map)}")
     print(f"CWEs in train: {train_df['cwe_id'].nunique()}")
     print(f"CWEs in test:  {test_df['cwe_id'].nunique()}")
+    if "source" in train_df.columns:
+        print(f"Train sources: {train_df['source'].value_counts().to_dict()}")
+        print(f"Test sources:  {test_df['source'].value_counts().to_dict()}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,16 @@
+2026-04-22 20:11:59 | INFO     | Using device: cuda
+2026-04-22 20:11:59 | INFO     | QLoRA model: google/codegemma-1.1-2b
+2026-04-22 20:11:59 | INFO     | Loading model with QLoRA...
+2026-04-22 20:36:07 | INFO     | Model parameters — total: 1,535,363,072, trainable: 19,853,312 (1.29%)
+2026-04-22 20:36:07 | INFO     | Loading data...
+2026-04-22 20:36:09 | INFO     | Train batches: 41368, Test batches: 11224
+2026-04-22 20:36:09 | INFO     | Using PagedAdamW8bit optimizer
+2026-04-22 20:36:09 | INFO     | Mixed precision: True (dtype=torch.bfloat16)
+2026-04-23 04:05:59 | INFO     | Evaluating on test set...
+2026-04-23 04:38:03 | INFO     | Epoch 1 | Train Loss: 4.0373 | Test Loss: 4.7707 | Test Acc: 0.0000 | Test Macro-F1: 0.0000 | Time: 26989s
+2026-04-23 04:38:05 | INFO     | No improvement. Patience: 1/2
+2026-04-23 11:30:53 | INFO     | Evaluating on test set...
+2026-04-23 12:07:50 | INFO     | Epoch 2 | Train Loss: 4.7812 | Test Loss: 4.7707 | Test Acc: 0.0000 | Test Macro-F1: 0.0000 | Time: 24768s
+2026-04-23 12:07:52 | INFO     | No improvement. Patience: 2/2
+2026-04-23 12:07:52 | INFO     | Early stopping triggered
+2026-04-23 12:07:52 | INFO     | Training complete. Best Macro-F1: 0.0000

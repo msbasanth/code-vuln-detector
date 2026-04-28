@@ -1,0 +1,1205 @@
+{
+  "15": {
+    "cwe_name": "External Control of System or Configuration Setting",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Data Disclosure",
+      "Linkability",
+      "Non-repudiation"
+    ]
+  },
+  "23": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Non-compliance"
+    ]
+  },
+  "36": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Non-compliance"
+    ]
+  },
+  "78": {
+    "cwe_name": "Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')",
+    "category_name": "Data Neutralization Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "90": {
+    "cwe_name": "Improper Neutralization of Special Elements used in an LDAP Query ('LDAP Injection')",
+    "category_name": "Data Neutralization Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "114": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "121": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability"
+    ]
+  },
+  "122": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability"
+    ]
+  },
+  "123": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "124": {
+    "cwe_name": "Buffer Underwrite ('Buffer Underflow')",
+    "category_name": "Memory Buffer Errors",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "126": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Linkability"
+    ]
+  },
+  "127": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Linkability"
+    ]
+  },
+  "134": {
+    "cwe_name": "Use of Externally-Controlled Format String",
+    "category_name": "String Errors",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "176": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Non-compliance"
+    ]
+  },
+  "188": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Unawareness"
+    ]
+  },
+  "190": {
+    "cwe_name": "Integer Overflow or Wraparound",
+    "category_name": "Complexity Issues",
+    "threat_types": [
+      "Identifiability",
+      "Linkability"
+    ]
+  },
+  "191": {
+    "cwe_name": "Integer Underflow (Wrap or Wraparound)",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability"
+    ]
+  },
+  "194": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability"
+    ]
+  },
+  "195": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability"
+    ]
+  },
+  "196": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability"
+    ]
+  },
+  "197": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability"
+    ]
+  },
+  "222": {
+    "cwe_name": "Truncation of Security-relevant Information",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "223": {
+    "cwe_name": "Omission of Security-relevant Information",
+    "category_name": "Data Integrity Issues",
+    "threat_types": [
+      "Identifiability",
+      "Unawareness"
+    ]
+  },
+  "226": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance"
+    ]
+  },
+  "242": {
+    "cwe_name": "Use of Inherently Dangerous Function",
+    "category_name": "Cryptographic Issues",
+    "threat_types": [
+      "Data Disclosure"
+    ]
+  },
+  "244": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance"
+    ]
+  },
+  "247": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Identifiability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "252": {
+    "cwe_name": "Unchecked Return Value",
+    "category_name": "Error Conditions, Return Values, Status Codes",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "253": {
+    "cwe_name": "Incorrect Check of Function Return Value",
+    "category_name": "Error Conditions, Return Values, Status Codes",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "256": {
+    "cwe_name": "Plaintext Storage of a Password",
+    "category_name": "Credentials Management Errors",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "259": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance"
+    ]
+  },
+  "272": {
+    "cwe_name": "Least Privilege Violation",
+    "category_name": "Privilege Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "273": {
+    "cwe_name": "Improper Check for Dropped Privileges",
+    "category_name": "Privilege Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "284": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Non-compliance"
+    ]
+  },
+  "319": {
+    "cwe_name": "Cleartext Transmission of Sensitive Information",
+    "category_name": "Information Management Errors",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "321": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance"
+    ]
+  },
+  "325": {
+    "cwe_name": "Missing Cryptographic Step",
+    "category_name": "Cryptographic Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "327": {
+    "cwe_name": "Object Model Violation: Just One of Equals and Hashcode Defined",
+    "category_name": "Data Processing Errors",
+    "threat_types": [
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "328": {
+    "cwe_name": "Use of Weak Hash",
+    "category_name": "Cryptographic Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "338": {
+    "cwe_name": "Use of Cryptographically Weak Pseudo-Random Number Generator (PRNG)",
+    "category_name": "Cryptographic Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "364": {
+    "cwe_name": "Signal Handler Race Condition",
+    "category_name": "Signal Errors",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "366": {
+    "cwe_name": "Race Condition within a Thread",
+    "category_name": "Business Logic Errors",
+    "threat_types": [
+      "Identifiability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "367": {
+    "cwe_name": "Time-of-check Time-of-use (TOCTOU) Race Condition",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "369": {
+    "cwe_name": "Divide By Zero",
+    "category_name": "Data Processing Errors",
+    "threat_types": [
+      "Linkability",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "377": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "390": {
+    "cwe_name": "Detection of Error Condition Without Action",
+    "category_name": "Error Conditions, Return Values, Status Codes",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "391": {
+    "cwe_name": "Unchecked Error Condition",
+    "category_name": "Error Conditions, Return Values, Status Codes",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "396": {
+    "cwe_name": "Declaration of Catch for Generic Exception",
+    "category_name": "Error Conditions, Return Values, Status Codes",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "397": {
+    "cwe_name": "Declaration of Throws for Generic Exception",
+    "category_name": "Error Conditions, Return Values, Status Codes",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "398": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Unawareness"
+    ]
+  },
+  "400": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "401": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Unawareness"
+    ]
+  },
+  "404": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "415": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "416": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "426": {
+    "cwe_name": "Untrusted Search Path",
+    "category_name": "File Handling Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "427": {
+    "cwe_name": "Uncontrolled Search Path Element",
+    "category_name": "File Handling Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "440": {
+    "cwe_name": "Expected Behavior Violation",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-repudiation"
+    ]
+  },
+  "457": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Unawareness"
+    ]
+  },
+  "459": {
+    "cwe_name": "Incomplete Cleanup",
+    "category_name": "Initialization and Cleanup Errors",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "464": {
+    "cwe_name": "Addition of Data Structure Sentinel",
+    "category_name": "Data Neutralization Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "467": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability"
+    ]
+  },
+  "468": {
+    "cwe_name": "Incorrect Pointer Scaling",
+    "category_name": "Authorization Errors",
+    "threat_types": [
+      "Identifiability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "469": {
+    "cwe_name": "Use of Pointer Subtraction to Determine Size",
+    "category_name": "Memory Buffer Errors",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability"
+    ]
+  },
+  "475": {
+    "cwe_name": "Undefined Behavior for Input to API",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Identifiability",
+      "Linkability"
+    ]
+  },
+  "476": {
+    "cwe_name": "NULL Pointer Dereference",
+    "category_name": "Credentials Management Errors",
+    "threat_types": [
+      "Detectability",
+      "Identifiability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "478": {
+    "cwe_name": "Missing Default Case in Multiple Condition Expression",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "479": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "480": {
+    "cwe_name": "Use of Incorrect Operator",
+    "category_name": "Expression Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "481": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "482": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "483": {
+    "cwe_name": "Incorrect Block Delimitation",
+    "category_name": "File Handling Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance",
+      "Non-repudiation"
+    ]
+  },
+  "484": {
+    "cwe_name": "Omitted Break Statement in Switch",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Detectability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation"
+    ]
+  },
+  "500": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "506": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation"
+    ]
+  },
+  "510": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation"
+    ]
+  },
+  "511": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation"
+    ]
+  },
+  "526": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance"
+    ]
+  },
+  "534": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance"
+    ]
+  },
+  "535": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Non-compliance"
+    ]
+  },
+  "546": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Unawareness"
+    ]
+  },
+  "561": {
+    "cwe_name": "Dead Code",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "562": {
+    "cwe_name": "Return of Stack Variable Address",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "563": {
+    "cwe_name": "Assignment to Variable without Use",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "570": {
+    "cwe_name": "Expression is Always False",
+    "category_name": "Expression Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "571": {
+    "cwe_name": "Expression is Always True",
+    "category_name": "Expression Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "587": {
+    "cwe_name": "Assignment of a Fixed Address to a Pointer",
+    "category_name": "Authorization Errors",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "588": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Unawareness"
+    ]
+  },
+  "590": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "591": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance"
+    ]
+  },
+  "605": {
+    "cwe_name": "Multiple Binds to the Same Port",
+    "category_name": "Bad Coding Practices",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "606": {
+    "cwe_name": "Unchecked Input for Loop Condition",
+    "category_name": "Data Validation Issues",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "615": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance"
+    ]
+  },
+  "617": {
+    "cwe_name": "Reachable Assertion",
+    "category_name": "Error Conditions, Return Values, Status Codes",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "620": {
+    "cwe_name": "Unverified Password Change",
+    "category_name": "Credentials Management Errors",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "665": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Unawareness"
+    ]
+  },
+  "666": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "667": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Linkability",
+      "Non-compliance"
+    ]
+  },
+  "672": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "674": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "675": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "676": {
+    "cwe_name": "Use of Potentially Dangerous Function",
+    "category_name": "Data Processing Errors",
+    "threat_types": [
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "680": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "681": {
+    "cwe_name": "Incorrect Conversion between Numeric Types",
+    "category_name": "Type Errors",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "685": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Unawareness"
+    ]
+  },
+  "688": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Unawareness"
+    ]
+  },
+  "690": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "758": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Unawareness"
+    ]
+  },
+  "761": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "762": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "773": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Unawareness"
+    ]
+  },
+  "775": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Unawareness"
+    ]
+  },
+  "780": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance"
+    ]
+  },
+  "785": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Non-compliance"
+    ]
+  },
+  "789": {
+    "cwe_name": "",
+    "category_name": "Manual Assignment",
+    "threat_types": [
+      "Detectability",
+      "Non-compliance",
+      "Unawareness"
+    ]
+  },
+  "832": {
+    "cwe_name": "Unlock of a Resource that is not Locked",
+    "category_name": "Data Processing Errors",
+    "threat_types": [
+      "Detectability",
+      "Linkability",
+      "Non-compliance"
+    ]
+  },
+  "835": {
+    "cwe_name": "Loop with Unreachable Exit Condition ('Infinite Loop')",
+    "category_name": "Data Processing Errors",
+    "threat_types": [
+      "Identifiability",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  },
+  "843": {
+    "cwe_name": "Access of Resource Using Incompatible Type ('Type Confusion')",
+    "category_name": "Type Errors",
+    "threat_types": [
+      "Data Disclosure",
+      "Detectability",
+      "Identifiability",
+      "Linkability",
+      "Non-compliance",
+      "Non-repudiation",
+      "Unawareness"
+    ]
+  }
+}

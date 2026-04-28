@@ -1,0 +1,9 @@
+{
+  "source": "juliet",
+  "sample_count": 7248,
+  "accuracy": 0.9995860927152318,
+  "macro_precision": 0.9468770995086785,
+  "macro_recall": 0.9470624235006121,
+  "macro_f1": 0.9469684575945765,
+  "weighted_f1": 0.9995170773137473
+}

@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.predict import load_model, predict_code, predict_file, load_qlora_model, predict_code_qlora
 from src.gemma_predict import load_zero_shot_model, predict_code_zero_shot
 from src.utils import load_config, get_device, load_label_map, count_parameters
+from src.risk import HealthcareRiskPrioritizer
 
 # CWE short descriptions for the 118 classes in the Juliet Test Suite
 CWE_DESCRIPTIONS = {
@@ -199,6 +200,61 @@ def get_description(cwe_id: str) -> str:
     return CWE_DESCRIPTIONS.get(cwe_id, "Unknown")
 
 
+@st.cache_resource
+def get_risk_prioritizer():
+    """Load healthcare risk prioritizer (cached). Returns None if mapping unavailable."""
+    try:
+        return HealthcareRiskPrioritizer()
+    except FileNotFoundError:
+        return None
+
+
+PRIORITY_COLORS = {
+    "Critical": "#dc3545",
+    "High": "#fd7e14",
+    "Medium": "#ffc107",
+    "Low": "#28a745",
+}
+
+
+def priority_badge(level: str) -> str:
+    """Return HTML for a colored priority badge."""
+    color = PRIORITY_COLORS.get(level, "#6c757d")
+    return (
+        f'<span style="background:{color};color:#fff;padding:2px 10px;'
+        f'border-radius:4px;font-weight:600">{level}</span>'
+    )
+
+
+# Healthcare-context rationale for each LINDDUN threat type
+THREAT_RATIONALE = {
+    "Data Disclosure": "Vulnerability may expose protected health information (PHI) or sensitive patient data to unauthorized parties.",
+    "Identifiability": "Leaked data can link to specific individuals, enabling re-identification of patients from disclosed records.",
+    "Linkability": "Attacker can correlate data across sessions or systems, linking separate patient records together.",
+    "Non-repudiation": "Compromised audit trails prevent attributing actions to specific users, undermining accountability.",
+    "Detectability": "Vulnerability presence or exploitation may be detectable, revealing system internals or data existence.",
+    "Unawareness": "Users or patients are unaware their data is being accessed, processed, or transmitted insecurely.",
+    "Non-compliance": "Violates HIPAA, GDPR, or other healthcare data protection regulations, risking legal and financial penalties.",
+}
+
+# Healthcare-context rationale for each control domain
+DOMAIN_RATIONALE = {
+    "Confidentiality Protection": "Safeguards to prevent unauthorized disclosure of PHI, including encryption and access restrictions.",
+    "Access Control": "Mechanisms ensuring only authorized personnel can access patient data, enforcing least-privilege principles.",
+    "Audit & Accountability": "Logging, monitoring, and attribution controls to track who accessed or modified health records.",
+    "Secure Data Handling": "Proper encryption, sanitization, and lifecycle management of data at rest and in transit.",
+    "Service Availability": "Ensuring healthcare systems remain operational; disruptions can directly impact patient safety.",
+}
+
+# Rationale for each risk factor
+FACTOR_RATIONALE = {
+    "Severity": "CVSS-style impact rating of the CWE category in a healthcare context (E).",
+    "Data Sensitivity": "Maximum privacy impact across mapped LINDDUN threat types (D).",
+    "Service Impact": "Maximum operational impact across affected control domains (S).",
+    "Ctrl Importance": "Average importance of all affected policy control domains (C').",
+}
+
+
 def show_results(results: list[dict]):
     """Display prediction results with chart and table."""
     if not results:
@@ -242,15 +298,316 @@ def show_results(results: list[dict]):
         hide_index=True,
     )
 
+    # ── Healthcare Risk Assessment ──────────────────────────────────────
+    prioritizer = get_risk_prioritizer()
+    if prioritizer:
+        assessments = prioritizer.assess_batch(results)
+        top_a = assessments[0]
+
+        st.divider()
+        st.markdown("#### Healthcare Risk Assessment")
+
+        # Priority badge + risk score
+        badge_col, score_col = st.columns([2, 1])
+        with badge_col:
+            st.markdown(
+                f"**Priority:** {priority_badge(top_a.priority_level)}",
+                unsafe_allow_html=True,
+            )
+        with score_col:
+            st.metric("Risk Score", f"{top_a.risk_score:.2f}")
+
+        # Three-stage pipeline — summary row
+        col_threats, col_domains, col_factors = st.columns(3)
+
+        with col_threats:
+            st.markdown("**Step 1 — Privacy Threats**")
+            st.caption(f"{len(top_a.threat_types)} LINDDUN threat types identified")
+            for t in top_a.threat_types:
+                st.markdown(f"- {t}")
+
+        with col_domains:
+            st.markdown("**Step 2 — Control Domains**")
+            st.caption(f"{len(top_a.control_domains)} policy-relevant areas affected")
+            for d in top_a.control_domains:
+                st.markdown(f"- {d}")
+
+        with col_factors:
+            st.markdown("**Step 3 — Risk Factors**")
+            st.caption("Weighted components")
+            factors = [
+                ("Severity", top_a.technical_severity),
+                ("Data Sensitivity", top_a.data_sensitivity),
+                ("Service Impact", top_a.service_impact),
+                ("Ctrl Importance", top_a.control_importance),
+            ]
+            for name, val in factors:
+                pct = int(val * 100)
+                bar_html = (
+                    f'<div style="display:flex;align-items:center;margin-bottom:6px">'
+                    f'<span style="width:110px;font-size:0.85em">{name}</span>'
+                    f'<div style="flex:1;background:#e9ecef;border-radius:4px;height:16px;margin:0 8px">'
+                    f'<div style="background:#636EFA;width:{pct}%;height:100%;border-radius:4px"></div></div>'
+                    f'<span style="font-size:0.85em;width:36px">{val:.2f}</span></div>'
+                )
+                st.markdown(bar_html, unsafe_allow_html=True)
+
+        # Three-stage pipeline — rationale tables
+        with st.expander("Step 1 — Privacy Threat Rationale"):
+            threat_rows = "| Threat Type | Rationale |\n|---|---|\n"
+            for t in top_a.threat_types:
+                threat_rows += f"| **{t}** | {THREAT_RATIONALE.get(t, 'N/A')} |\n"
+            st.markdown(threat_rows)
+
+        with st.expander("Step 2 — Control Domain Rationale"):
+            domain_rows = "| Control Domain | Rationale |\n|---|---|\n"
+            for d in top_a.control_domains:
+                domain_rows += f"| **{d}** | {DOMAIN_RATIONALE.get(d, 'N/A')} |\n"
+            st.markdown(domain_rows)
+
+        with st.expander("Step 3 — Risk Factor Rationale"):
+            factor_rows = "| Factor | Value | Rationale |\n|---|---|---|\n"
+            for name, val in factors:
+                factor_rows += f"| **{name}** | {val:.4f} | {FACTOR_RATIONALE.get(name, 'N/A')} |\n"
+            st.markdown(factor_rows)
+
+        # Expandable score breakdown
+        with st.expander("Risk Score Breakdown"):
+            st.latex(r"P = w_1 \cdot s + w_2 \cdot E + w_3 \cdot D + w_4 \cdot S + w_5 \cdot C'")
+            st.markdown(f"""
+| Factor | Symbol | Weight | Value |
+|---|---|---|---|
+| Model Confidence | *s* | 0.15 | {top_a.confidence:.4f} |
+| Technical Severity | *E* | 0.25 | {top_a.technical_severity:.4f} |
+| Data Sensitivity | *D* | 0.25 | {top_a.data_sensitivity:.4f} |
+| Service Impact | *S* | 0.20 | {top_a.service_impact:.4f} |
+| Control Importance | *C'* | 0.15 | {top_a.control_importance:.4f} |
+| **Risk Score** | **P** | | **{top_a.risk_score:.4f}** |
+""")
+
+        # All predictions risk summary
+        if len(assessments) > 1:
+            risk_rows = [
+                {
+                    "CWE": a.cwe_id,
+                    "Priority": a.priority_level,
+                    "Risk Score": f"{a.risk_score:.4f}",
+                    "Threats": ", ".join(a.threat_types),
+                }
+                for a in assessments
+            ]
+            st.markdown("**All Predictions — Risk Summary**")
+            st.dataframe(
+                pd.DataFrame(risk_rows),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+
+DATASET_CONFIGS = {
+    "Juliet Full (118 CWEs)": {
+        "train": "data/processed/train.parquet",
+        "test": "data/processed/test.parquet",
+        "label_map": "data/processed/label_map.json",
+        "has_file_path": True,
+        "has_source": False,
+        "description": "Complete NIST Juliet C/C++ 1.3 Test Suite — all 118 CWE categories.",
+    },
+    "Juliet-19 (19 overlap CWEs)": {
+        "train": "data/processed/juliet19_train.parquet",
+        "test": "data/processed/juliet19_test.parquet",
+        "label_map": "data/processed/juliet19_label_map.json",
+        "has_file_path": False,
+        "has_source": True,
+        "description": "Juliet subset filtered to the 19 CWEs that overlap with Big-Vul.",
+    },
+    "Juliet + Big-Vul (19 CWEs)": {
+        "train": "data/processed/combined_train.parquet",
+        "test": "data/processed/combined_test.parquet",
+        "label_map": "data/processed/combined_label_map.json",
+        "has_file_path": False,
+        "has_source": True,
+        "description": "Combined dataset: Juliet + Big-Vul real-world vulnerabilities, 19 shared CWEs.",
+    },
+}
+
 
 @st.cache_data
-def load_dataset_info():
-    """Load train/test parquet metadata (cached)."""
-    train_path = "data/processed/train.parquet"
-    test_path = "data/processed/test.parquet"
-    train_df = pd.read_parquet(train_path, columns=["file_path", "cwe_id", "cwe_name", "template_id"])
-    test_df = pd.read_parquet(test_path, columns=["file_path", "cwe_id", "cwe_name", "template_id"])
+def load_dataset_info(dataset_key: str):
+    """Load train/test parquet metadata for the selected dataset (cached)."""
+    cfg = DATASET_CONFIGS[dataset_key]
+    common_cols = ["cwe_id", "cwe_name", "template_id"]
+    if cfg["has_file_path"]:
+        common_cols = ["file_path"] + common_cols
+    if cfg["has_source"]:
+        common_cols = common_cols + ["source"]
+    # Always include 'code' when available (juliet19 / combined use it for inline code)
+    if not cfg["has_file_path"]:
+        common_cols = ["code"] + common_cols
+    train_df = pd.read_parquet(cfg["train"], columns=common_cols)
+    test_df = pd.read_parquet(cfg["test"], columns=common_cols)
     return train_df, test_df
+
+
+# --- Experiment Configurations ---
+EXPERIMENT_CONFIGS = {
+    "Experiment A — Juliet-118 Baseline": {
+        "id": "exp_a_juliet118",
+        "dataset_key": "Juliet Full (118 CWEs)",
+        "train_path": "data/processed/train.parquet",
+        "test_path": "data/processed/test.parquet",
+        "label_map": "data/processed/label_map.json",
+        "checkpoint_base": "outputs/exp_a_juliet118/checkpoints",
+        "logs_dir": "outputs/exp_a_juliet118/logs",
+        "eval_dir": "outputs/exp_a_juliet118",
+        "models": ["codet5-small", "codet5-base", "codebert-base", "graphcodebert-base"],
+        "description": (
+            "Baseline experiment using the full NIST Juliet C/C++ 1.3 Test Suite "
+            "with **118 CWE categories**, **82,736 training** and **22,447 test** samples. "
+            "Four encoder models are fine-tuned with full parameters."
+        ),
+    },
+    "Experiment B — Juliet-19 Subset": {
+        "id": "exp_b_juliet19",
+        "dataset_key": "Juliet-19 (19 overlap CWEs)",
+        "train_path": "data/processed/juliet19_train.parquet",
+        "test_path": "data/processed/juliet19_test.parquet",
+        "label_map": "data/processed/juliet19_label_map.json",
+        "checkpoint_base": "outputs/exp_b_juliet19/checkpoints",
+        "logs_dir": "outputs/exp_b_juliet19/logs",
+        "eval_dir": "outputs/exp_b_juliet19",
+        "models": ["codet5-small", "codet5-base", "codebert-base", "graphcodebert-base"],
+        "description": (
+            "Juliet subset filtered to the **19 CWE categories** that overlap with Big-Vul. "
+            "**26,804 training** and **7,248 test** samples. Serves as the Juliet-only "
+            "control for comparison with Experiment C."
+        ),
+    },
+    "Experiment C — Juliet + Big-Vul Combined": {
+        "id": "exp_c_combined",
+        "dataset_key": "Juliet + Big-Vul (19 CWEs)",
+        "train_path": "data/processed/combined_train.parquet",
+        "test_path": "data/processed/combined_test.parquet",
+        "label_map": "data/processed/combined_label_map.json",
+        "checkpoint_base": "outputs/exp_c_combined/checkpoints",
+        "logs_dir": "outputs/exp_c_combined/logs",
+        "eval_dir": "outputs/exp_c_combined",
+        "models": ["codet5-small", "codet5-base", "codebert-base", "graphcodebert-base"],
+        "description": (
+            "Combined dataset merging Juliet + Big-Vul real-world vulnerabilities on "
+            "**19 shared CWE categories**. **27,695 training** and **7,727 test** samples. "
+            "Tests whether adding real-world code improves generalisation."
+        ),
+    },
+    "Experiment D — Big-Vul Only": {
+        "id": "exp_d_bigvul",
+        "dataset_key": "Big-Vul (55 CWEs)",
+        "train_path": "data/processed/bigvul_train.parquet",
+        "test_path": "data/processed/bigvul_test.parquet",
+        "label_map": "data/processed/bigvul_label_map.json",
+        "checkpoint_base": "outputs/exp_d_bigvul/checkpoints",
+        "logs_dir": "outputs/exp_d_bigvul/logs",
+        "eval_dir": "outputs/exp_d_bigvul",
+        "models": ["codet5-small", "codet5-base", "codebert-base", "graphcodebert-base"],
+        "description": (
+            "Big-Vul real-world vulnerability dataset only, filtered to CWEs with ≥5 samples. "
+            "**55 CWE categories**, **7,009 training** and **1,701 test** samples. "
+            "Establishes a real-world code baseline without synthetic Juliet data."
+        ),
+    },
+    "Experiment E — Juliet + Big-Vul Union": {
+        "id": "exp_e_union",
+        "dataset_key": "Juliet + Big-Vul Union (187 CWEs)",
+        "train_path": "data/processed/union_train.parquet",
+        "test_path": "data/processed/union_test.parquet",
+        "label_map": "data/processed/union_label_map.json",
+        "checkpoint_base": "outputs/exp_e_union/checkpoints",
+        "logs_dir": "outputs/exp_e_union/logs",
+        "eval_dir": "outputs/exp_e_union",
+        "models": ["codet5-small", "codet5-base", "codebert-base", "graphcodebert-base"],
+        "description": (
+            "Union of all Juliet (118 CWEs) and all Big-Vul (88 CWEs) data — "
+            "**187 CWE categories**, **89,798 training** and **24,168 test** samples. "
+            "Tests whether combining all available data across the full CWE spectrum "
+            "improves coverage and generalisation."
+        ),
+    },
+    "Experiment F — Union Extended Training": {
+        "id": "exp_f_union_6ep",
+        "dataset_key": "Juliet + Big-Vul Union (187 CWEs)",
+        "train_path": "data/processed/union_train.parquet",
+        "test_path": "data/processed/union_test.parquet",
+        "label_map": "data/processed/union_label_map.json",
+        "checkpoint_base": "outputs/exp_f_union_6ep/checkpoints",
+        "logs_dir": "outputs/exp_f_union_6ep/logs",
+        "eval_dir": "outputs/exp_f_union_6ep",
+        "models": ["codet5-small", "codet5-base", "codebert-base", "graphcodebert-base"],
+        "description": (
+            "Extended training on the Union dataset (same as Experiment E) with "
+            "**6 epochs** (up from 2) and **patience=3** early stopping. "
+            "**187 CWE categories**, **89,798 training** and **24,168 test** samples. "
+            "Tests whether additional training improves convergence on the combined dataset."
+        ),
+    },
+}
+
+MODEL_DISPLAY_NAMES = {
+    "codet5-small": "CodeT5-Small",
+    "codet5-base": "CodeT5-Base",
+    "codebert-base": "CodeBERT-Base",
+    "graphcodebert-base": "GraphCodeBERT-Base",
+}
+
+
+@st.cache_data
+def load_epoch_metrics(logs_dir: str, model_variant: str):
+    """Load per-epoch training metrics for a model."""
+    path = os.path.join(logs_dir, f"{model_variant}_epoch_metrics.json")
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return json.load(f)
+    return None
+
+
+@st.cache_data
+def load_classification_report(eval_dir: str, model_variant: str):
+    """Load and parse sklearn classification report text into a DataFrame."""
+    path = os.path.join(eval_dir, model_variant, "classification_report.txt")
+    if not os.path.exists(path):
+        return None
+    with open(path, "r") as f:
+        lines = f.readlines()
+    rows = []
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) == 5 and parts[0].startswith("CWE-"):
+            rows.append({
+                "CWE": parts[0],
+                "precision": float(parts[1]),
+                "recall": float(parts[2]),
+                "f1": float(parts[3]),
+                "support": int(parts[4]),
+            })
+    return pd.DataFrame(rows) if rows else None
+
+
+@st.cache_data
+def load_confusion_pairs(eval_dir: str, model_variant: str):
+    """Load confusion pairs CSV for a model."""
+    path = os.path.join(eval_dir, model_variant, "confusion_pairs.csv")
+    if os.path.exists(path):
+        return pd.read_csv(path)
+    return None
+
+
+@st.cache_data
+def load_eval_metrics(eval_dir: str, model_variant: str):
+    """Load evaluation metrics JSON for a model."""
+    path = os.path.join(eval_dir, model_variant, "metrics.json")
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return json.load(f)
+    return None
 
 
 # --- Page config ---
@@ -278,7 +635,7 @@ qlora_ids = {m["model_id"] for m in available_models if m.get("qlora", False)}
 st.sidebar.title("Navigation")
 nav_page = st.sidebar.radio(
     "Go to",
-    ["The Detector", "Metrics", "Test Environment"],
+    ["The Detector", "Metrics", "Experiments", "Test Environment"],
     index=0,
     label_visibility="collapsed",
 )
@@ -433,12 +790,18 @@ if nav_page == "The Detector":
                                 max_length=config["max_length"], top_k=1,
                             )
                         top = results[0]
-                        rows.append({
+                        row = {
                             "File": os.path.relpath(fpath, folder_path),
                             "Top CWE": top["cwe"],
                             "Confidence": f"{top['confidence']:.2%}",
                             "Description": get_description(top["cwe"]),
-                        })
+                        }
+                        scan_prioritizer = get_risk_prioritizer()
+                        if scan_prioritizer:
+                            a = scan_prioritizer.assess(top["cwe"], top["confidence"])
+                            row["Priority"] = a.priority_level
+                            row["Risk Score"] = f"{a.risk_score:.4f}"
+                        rows.append(row)
                         progress.progress((i + 1) / len(files))
 
                     progress.empty()
@@ -446,15 +809,32 @@ if nav_page == "The Detector":
                     df = pd.DataFrame(rows)
                     st.dataframe(df, use_container_width=True, hide_index=True)
 
-                    # Summary chart
-                    cwe_counts = df["Top CWE"].value_counts()
-                    fig = px.bar(
-                        x=cwe_counts.index,
-                        y=cwe_counts.values,
-                        labels={"x": "CWE", "y": "File Count"},
-                    )
-                    fig.update_layout(margin=dict(l=0, r=0, t=30, b=30))
-                    st.plotly_chart(fig, use_container_width=True)
+                    # Summary charts
+                    chart_col1, chart_col2 = st.columns(2)
+                    with chart_col1:
+                        st.markdown("**CWE Distribution**")
+                        cwe_counts = df["Top CWE"].value_counts()
+                        fig = px.bar(
+                            x=cwe_counts.index,
+                            y=cwe_counts.values,
+                            labels={"x": "CWE", "y": "File Count"},
+                        )
+                        fig.update_layout(margin=dict(l=0, r=0, t=10, b=30))
+                        st.plotly_chart(fig, use_container_width=True)
+
+                    if "Priority" in df.columns:
+                        with chart_col2:
+                            st.markdown("**Priority Distribution**")
+                            prio_order = ["Critical", "High", "Medium", "Low"]
+                            prio_counts = df["Priority"].value_counts().reindex(prio_order).dropna()
+                            fig_prio = px.pie(
+                                names=prio_counts.index,
+                                values=prio_counts.values,
+                                color=prio_counts.index,
+                                color_discrete_map=PRIORITY_COLORS,
+                            )
+                            fig_prio.update_layout(margin=dict(l=0, r=0, t=10, b=10))
+                            st.plotly_chart(fig_prio, use_container_width=True)
             else:
                 st.warning("Please enter a valid folder path.")
 
@@ -547,7 +927,18 @@ if nav_page == "Metrics":
     # ==================== TRAINING (sub-section of Metrics) ====================
     st.divider()
     st.subheader("Dataset & Training Details")
-    train_df, test_df = load_dataset_info()
+
+    # Dataset selector dropdown
+    dataset_choice = st.selectbox(
+        "Select Dataset",
+        options=list(DATASET_CONFIGS.keys()),
+        index=0,
+        key="dataset_selector",
+    )
+    ds_cfg = DATASET_CONFIGS[dataset_choice]
+    st.caption(ds_cfg["description"])
+
+    train_df, test_df = load_dataset_info(dataset_choice)
 
     # Overview metrics
     col1, col2, col3, col4 = st.columns(4)
@@ -556,6 +947,13 @@ if nav_page == "Metrics":
     col3.metric("Total Samples", f"{len(train_df) + len(test_df):,}")
     col4.metric("CWE Classes", f"{train_df['cwe_id'].nunique()}")
 
+    # Source breakdown for datasets that have a 'source' column
+    if ds_cfg["has_source"]:
+        all_df = pd.concat([train_df, test_df], ignore_index=True)
+        source_counts = all_df["source"].value_counts()
+        src_parts = [f"**{src}**: {cnt:,}" for src, cnt in source_counts.items()]
+        st.caption("Source breakdown: " + " · ".join(src_parts))
+
     st.divider()
 
     # Dataset selector
@@ -563,32 +961,54 @@ if nav_page == "Metrics":
     active_df = train_df if split_choice == "Train" else test_df
 
     # Filters
+    search_text = ""
+    selected_source = "All"
     filter_col1, filter_col2 = st.columns(2)
     with filter_col1:
         all_cwes = sorted(active_df["cwe_id"].unique(), key=int)
         cwe_options = [f"CWE-{c}" for c in all_cwes]
         selected_cwe = st.selectbox("Filter by CWE", ["All"] + cwe_options, key="cwe_filter")
     with filter_col2:
-        search_text = st.text_input("Search filename", placeholder="e.g. buffer_overflow", key="file_search")
+        if ds_cfg["has_file_path"]:
+            search_text = st.text_input("Search filename", placeholder="e.g. buffer_overflow", key="file_search")
+        elif ds_cfg["has_source"]:
+            source_options = ["All"] + sorted(active_df["source"].unique().tolist())
+            selected_source = st.selectbox("Filter by Source", source_options, key="source_filter")
 
     filtered = active_df.copy()
     if selected_cwe != "All":
         cwe_num = selected_cwe.replace("CWE-", "")
         filtered = filtered[filtered["cwe_id"] == cwe_num]
-    if search_text:
+    if ds_cfg["has_file_path"] and search_text:
         filtered = filtered[filtered["file_path"].str.contains(search_text, case=False, na=False)]
+    if ds_cfg["has_source"] and not ds_cfg["has_file_path"]:
+        if selected_source != "All":
+            filtered = filtered[filtered["source"] == selected_source]
 
-    # Display table
-    display_df = filtered[["file_path", "cwe_id", "cwe_name", "template_id"]].copy()
-    display_df.insert(1, "CWE", display_df["cwe_id"].apply(lambda x: f"CWE-{x}"))
-    display_df["Description"] = display_df["CWE"].apply(get_description)
-    display_df = display_df.rename(columns={
-        "file_path": "File",
-        "cwe_name": "CWE Name",
-        "template_id": "Template ID",
-    }).drop(columns=["cwe_id"])
+    # Display table — adapt columns to dataset schema
+    if ds_cfg["has_file_path"]:
+        display_df = filtered[["file_path", "cwe_id", "cwe_name", "template_id"]].copy()
+        display_df.insert(1, "CWE", display_df["cwe_id"].apply(lambda x: f"CWE-{x}"))
+        display_df["Description"] = display_df["CWE"].apply(get_description)
+        display_df = display_df.rename(columns={
+            "file_path": "File",
+            "cwe_name": "CWE Name",
+            "template_id": "Template ID",
+        }).drop(columns=["cwe_id"])
+    else:
+        base_cols = ["cwe_id", "cwe_name", "template_id"]
+        if ds_cfg["has_source"]:
+            base_cols.append("source")
+        display_df = filtered[base_cols].copy()
+        display_df.insert(0, "CWE", display_df["cwe_id"].apply(lambda x: f"CWE-{x}"))
+        display_df["Description"] = display_df["CWE"].apply(get_description)
+        rename_map = {"cwe_name": "CWE Name", "template_id": "Template ID"}
+        if ds_cfg["has_source"]:
+            rename_map["source"] = "Source"
+        display_df = display_df.rename(columns=rename_map).drop(columns=["cwe_id"])
 
-    st.caption(f"Showing {len(filtered):,} of {len(active_df):,} samples — click a row to view file contents")
+    click_hint = "click a row to view file contents" if ds_cfg["has_file_path"] else "click a row to view code"
+    st.caption(f"Showing {len(filtered):,} of {len(active_df):,} samples — {click_hint}")
     event = st.dataframe(
         display_df,
         use_container_width=True,
@@ -598,20 +1018,30 @@ if nav_page == "Metrics":
         selection_mode="single-row",
     )
 
-    # Show selected file content
+    # Show selected row content
     selected_rows = event.selection.rows if event.selection else []
     if selected_rows:
         row_idx = selected_rows[0]
-        selected_file = display_df.iloc[row_idx]["File"]
-        full_path = os.path.join(config["dataset_root"], selected_file)
+        if ds_cfg["has_file_path"]:
+            selected_file = display_df.iloc[row_idx]["File"]
+            full_path = os.path.join(config["dataset_root"], selected_file)
 
-        st.subheader(f"File: {selected_file}")
-        if os.path.isfile(full_path):
-            with open(full_path, "r", encoding="utf-8", errors="replace") as f:
-                file_content = f.read()
-            st.code(file_content, language="c", line_numbers=True)
+            st.subheader(f"File: {selected_file}")
+            if os.path.isfile(full_path):
+                with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+                    file_content = f.read()
+                st.code(file_content, language="c", line_numbers=True)
+            else:
+                st.warning(f"File not found: {full_path}")
         else:
-            st.warning(f"File not found: {full_path}")
+            # Inline code from parquet (juliet19 / combined datasets)
+            code_content = filtered.iloc[row_idx]["code"] if "code" in filtered.columns else None
+            cwe_label = display_df.iloc[row_idx]["CWE"]
+            st.subheader(f"Code Sample — {cwe_label}")
+            if code_content:
+                st.code(code_content, language="c", line_numbers=True)
+            else:
+                st.warning("No code content available for this sample.")
 
     st.divider()
 
@@ -640,16 +1070,324 @@ if nav_page == "Metrics":
 
     # Template stats
     st.subheader("Template Statistics")
+    count_col = "file_path" if ds_cfg["has_file_path"] else "code"
     template_counts = active_df.groupby("cwe_id").agg(
-        samples=("file_path", "count"),
+        samples=(count_col, "count"),
         templates=("template_id", "nunique"),
     ).reset_index()
     template_counts["CWE"] = template_counts["cwe_id"].apply(lambda x: f"CWE-{x}")
     template_counts["Description"] = template_counts["CWE"].apply(get_description)
-    template_counts = template_counts[["CWE", "Description", "samples", "templates"]].rename(
+    display_cols = ["CWE", "Description", "samples", "templates"]
+    # Add source breakdown per CWE for combined/juliet19 datasets
+    if ds_cfg["has_source"]:
+        source_pivot = active_df.groupby(["cwe_id", "source"]).size().unstack(fill_value=0).reset_index()
+        template_counts = template_counts.merge(source_pivot, on="cwe_id", how="left")
+        for src_col in [c for c in source_pivot.columns if c != "cwe_id"]:
+            display_cols.append(src_col)
+    template_counts = template_counts[display_cols].rename(
         columns={"samples": "Samples", "templates": "Unique Templates"}
     ).sort_values("Samples", ascending=False)
     st.dataframe(template_counts, use_container_width=True, hide_index=True)
+
+# ==================== EXPERIMENTS ====================
+if nav_page == "Experiments":
+    st.header("Experiment Analysis")
+
+    # --- Experiment selector ---
+    exp_choice = st.selectbox(
+        "Select Experiment",
+        options=list(EXPERIMENT_CONFIGS.keys()),
+        index=0,
+        key="experiment_selector",
+    )
+    exp_cfg = EXPERIMENT_CONFIGS[exp_choice]
+    st.markdown(exp_cfg["description"])
+
+    # --- Model selector ---
+    available_models_exp = exp_cfg["models"]
+    model_display = [MODEL_DISPLAY_NAMES.get(m, m) for m in available_models_exp]
+    selected_model_display = st.selectbox(
+        "Select Model",
+        options=model_display,
+        index=0,
+        key="exp_model_selector",
+    )
+    selected_variant = available_models_exp[model_display.index(selected_model_display)]
+
+    st.divider()
+
+    # ---- Section 1: Dataset Overview ----
+    st.subheader("Dataset Overview")
+    train_df_exp = pd.read_parquet(exp_cfg["train_path"], columns=["cwe_id"])
+    test_df_exp = pd.read_parquet(exp_cfg["test_path"], columns=["cwe_id"])
+
+    mc1, mc2, mc3, mc4 = st.columns(4)
+    mc1.metric("Train Samples", f"{len(train_df_exp):,}")
+    mc2.metric("Test Samples", f"{len(test_df_exp):,}")
+    mc3.metric("Total Samples", f"{len(train_df_exp) + len(test_df_exp):,}")
+    mc4.metric("CWE Classes", f"{train_df_exp['cwe_id'].nunique()}")
+
+    st.divider()
+
+    # ---- Section 2: Train vs Test CWE Distribution ----
+    st.subheader("Training vs Testing Sample Distribution")
+    train_cwe = train_df_exp["cwe_id"].value_counts().reset_index()
+    train_cwe.columns = ["cwe_id", "Train"]
+    test_cwe = test_df_exp["cwe_id"].value_counts().reset_index()
+    test_cwe.columns = ["cwe_id", "Test"]
+    dist_df = train_cwe.merge(test_cwe, on="cwe_id", how="outer").fillna(0)
+    dist_df["CWE"] = dist_df["cwe_id"].apply(lambda x: f"CWE-{x}")
+    dist_df["Total"] = dist_df["Train"] + dist_df["Test"]
+    dist_df = dist_df.sort_values("Total", ascending=False)
+
+    dist_melted = dist_df.melt(
+        id_vars=["CWE"], value_vars=["Train", "Test"],
+        var_name="Split", value_name="Samples",
+    )
+    fig_dist = px.bar(
+        dist_melted, x="CWE", y="Samples", color="Split",
+        barmode="group", color_discrete_map={"Train": "#636EFA", "Test": "#EF553B"},
+    )
+    fig_dist.update_layout(
+        height=400, margin=dict(l=0, r=0, t=10, b=80),
+        xaxis_tickangle=-45, xaxis_title="",
+    )
+    st.plotly_chart(fig_dist, use_container_width=True)
+
+    st.divider()
+
+    # ---- Section 3: Per-CWE Precision Analysis ----
+    st.subheader(f"Per-CWE Performance — {selected_model_display}")
+
+    report_df = load_classification_report(exp_cfg["eval_dir"], selected_variant)
+
+    if report_df is not None:
+        report_df["Description"] = report_df["CWE"].apply(get_description)
+
+        # 3a: Average Precision vs CWE Category
+        st.markdown("**Average Precision by CWE Category**")
+        prec_sorted = report_df.sort_values("precision", ascending=True)
+        fig_prec = px.bar(
+            prec_sorted, y="CWE", x="precision", orientation="h",
+            color="precision", color_continuous_scale="RdYlGn",
+            range_color=[0, 1],
+            hover_data=["Description", "recall", "f1", "support"],
+        )
+        fig_prec.update_layout(
+            height=max(300, len(report_df) * 22),
+            margin=dict(l=0, r=0, t=10, b=30),
+            yaxis_title="", xaxis_title="Precision",
+            coloraxis_showscale=False,
+        )
+        st.plotly_chart(fig_prec, use_container_width=True)
+
+        st.divider()
+
+        # 3b: Training Samples vs Average Precision
+        st.markdown("**Training Samples vs Precision**")
+        train_support = train_df_exp["cwe_id"].value_counts().reset_index()
+        train_support.columns = ["cwe_id", "train_samples"]
+        train_support["CWE"] = train_support["cwe_id"].apply(lambda x: f"CWE-{x}")
+        scatter_df = report_df.merge(train_support[["CWE", "train_samples"]], on="CWE", how="left")
+        scatter_df["train_samples"] = scatter_df["train_samples"].fillna(0).astype(int)
+
+        fig_scatter = px.scatter(
+            scatter_df, x="train_samples", y="precision",
+            size="support", color="precision",
+            color_continuous_scale="RdYlGn", range_color=[0, 1],
+            hover_data=["CWE", "Description", "recall", "f1"],
+            labels={"train_samples": "Training Samples", "precision": "Precision"},
+        )
+        # Add OLS trend line
+        if len(scatter_df) > 2:
+            z = np.polyfit(scatter_df["train_samples"], scatter_df["precision"], 1)
+            x_line = np.linspace(scatter_df["train_samples"].min(), scatter_df["train_samples"].max(), 50)
+            y_line = np.polyval(z, x_line)
+            fig_scatter.add_scatter(
+                x=x_line, y=y_line, mode="lines",
+                line=dict(dash="dash", color="gray", width=2),
+                name="Trend", showlegend=True,
+            )
+        fig_scatter.update_layout(
+            height=450, margin=dict(l=0, r=0, t=10, b=30),
+            coloraxis_showscale=False,
+        )
+        st.plotly_chart(fig_scatter, use_container_width=True)
+
+        st.divider()
+
+        # 3c: Precision–Recall Relationship
+        st.markdown("**Precision–Recall Relationship Across CWE Categories**")
+        fig_pr = px.scatter(
+            report_df, x="recall", y="precision",
+            size="support", color="f1",
+            color_continuous_scale="RdYlGn", range_color=[0, 1],
+            hover_data=["CWE", "Description", "support"],
+            labels={"recall": "Recall", "precision": "Precision", "f1": "F1-Score"},
+        )
+        fig_pr.add_shape(
+            type="line", x0=0, y0=0, x1=1, y1=1,
+            line=dict(dash="dot", color="lightgray"),
+        )
+        fig_pr.update_layout(
+            height=450, margin=dict(l=0, r=0, t=10, b=30),
+            xaxis=dict(range=[-0.05, 1.05]),
+            yaxis=dict(range=[-0.05, 1.05]),
+        )
+        st.plotly_chart(fig_pr, use_container_width=True)
+    else:
+        st.info(
+            f"No per-CWE evaluation data for {selected_model_display}. "
+            "Run `python run_evaluations.ps1` to generate."
+        )
+
+    st.divider()
+
+    # ---- Section 4: Confusion Analysis ----
+    st.subheader(f"Most Confused CWE Pairs — {selected_model_display}")
+
+    confusion_df = load_confusion_pairs(exp_cfg["eval_dir"], selected_variant)
+    if confusion_df is not None and len(confusion_df) > 0:
+        top_n = min(15, len(confusion_df))
+        conf_top = confusion_df.head(top_n).copy()
+        conf_top["pair"] = conf_top["actual"] + " → " + conf_top["predicted"]
+        conf_top["actual_desc"] = conf_top["actual"].apply(get_description)
+        conf_top["predicted_desc"] = conf_top["predicted"].apply(get_description)
+
+        fig_conf = px.bar(
+            conf_top, y="pair", x="count", orientation="h",
+            color="count", color_continuous_scale="Reds",
+            hover_data=["actual_desc", "predicted_desc"],
+        )
+        fig_conf.update_layout(
+            height=max(250, top_n * 30),
+            margin=dict(l=0, r=0, t=10, b=30),
+            yaxis=dict(autorange="reversed", title=""),
+            xaxis_title="Misclassification Count",
+            coloraxis_showscale=False,
+        )
+        st.plotly_chart(fig_conf, use_container_width=True)
+
+        st.dataframe(
+            conf_top[["actual", "actual_desc", "predicted", "predicted_desc", "count"]].rename(columns={
+                "actual": "Actual CWE", "actual_desc": "Actual Description",
+                "predicted": "Predicted CWE", "predicted_desc": "Predicted Description",
+                "count": "Count",
+            }),
+            use_container_width=True, hide_index=True,
+        )
+    else:
+        st.info(f"No confusion data for {selected_model_display}.")
+
+    st.divider()
+
+    # ---- Section 5: Model Efficiency Comparison ----
+    st.subheader("Model Efficiency Comparison")
+
+    efficiency_rows = []
+    for variant in exp_cfg["models"]:
+        epoch_data = load_epoch_metrics(exp_cfg["logs_dir"], variant)
+        eval_data = load_eval_metrics(exp_cfg["eval_dir"], variant)
+        if epoch_data:
+            best = epoch_data.get("best_metrics", {})
+            epochs_trained = len(epoch_data.get("epoch_metrics", []))
+            total_time = sum(
+                e.get("training_time_seconds", 0) for e in epoch_data.get("epoch_metrics", [])
+            )
+            minutes, secs = divmod(int(total_time), 60)
+            efficiency_rows.append({
+                "Model": MODEL_DISPLAY_NAMES.get(variant, variant),
+                "Best F1": f"{best.get('best_f1', 0):.4f}",
+                "Best Acc": f"{best.get('best_acc', 0):.4f}",
+                "Best Prec": f"{best.get('best_precision', 0):.4f}",
+                "Best Recall": f"{best.get('best_recall', 0):.4f}",
+                "Best Epoch": str(best.get("best_f1_epoch", "N/A")),
+                "Epochs Trained": str(epochs_trained),
+                "Training Time": f"{minutes}m {secs}s",
+            })
+
+    if efficiency_rows:
+        st.dataframe(pd.DataFrame(efficiency_rows), use_container_width=True, hide_index=True)
+    else:
+        st.info("No training metrics found for this experiment.")
+
+    # Training curves (loss + F1) overlaid for all models
+    st.markdown("**Training Dynamics**")
+    curve_col1, curve_col2 = st.columns(2)
+
+    loss_traces = []
+    f1_traces = []
+    for variant in exp_cfg["models"]:
+        epoch_data = load_epoch_metrics(exp_cfg["logs_dir"], variant)
+        if epoch_data:
+            for e in epoch_data.get("epoch_metrics", []):
+                name = MODEL_DISPLAY_NAMES.get(variant, variant)
+                loss_traces.append({"Epoch": e["epoch"], "Train Loss": e["train_loss"], "Model": name})
+                f1_traces.append({"Epoch": e["epoch"], "Test F1": e["test_f1"], "Model": name})
+
+    with curve_col1:
+        if loss_traces:
+            fig_loss = px.line(
+                pd.DataFrame(loss_traces), x="Epoch", y="Train Loss",
+                color="Model", markers=True,
+            )
+            fig_loss.update_layout(height=350, margin=dict(l=0, r=0, t=30, b=30))
+            st.plotly_chart(fig_loss, use_container_width=True)
+
+    with curve_col2:
+        if f1_traces:
+            fig_f1 = px.line(
+                pd.DataFrame(f1_traces), x="Epoch", y="Test F1",
+                color="Model", markers=True,
+            )
+            fig_f1.update_layout(height=350, margin=dict(l=0, r=0, t=30, b=30))
+            st.plotly_chart(fig_f1, use_container_width=True)
+
+    st.divider()
+
+    # ---- Section 6: Cross-Experiment Comparison (B vs C) ----
+    st.subheader("Cross-Experiment Impact Analysis")
+
+    impact_path = os.path.join("outputs", "bigvul_impact_report.json")
+    if os.path.exists(impact_path):
+        with open(impact_path, "r") as f:
+            impact_data = json.load(f)
+
+        if impact_data:
+            impact_rows = []
+            for entry in impact_data:
+                impact_rows.append({
+                    "Model": entry["model"],
+                    "Exp B (Juliet-19) F1": f"{entry.get('exp_b_juliet19_best_f1', 0):.4f}",
+                    "Exp C (Combined) F1": f"{entry.get('exp_c_combined_best_f1', 0):.4f}",
+                    "F1 Delta (B→C)": f"{entry.get('exp_c_combined_f1_delta', 0):+.4f}",
+                    "Exp B Acc": f"{entry.get('exp_b_juliet19_best_acc', 0):.4f}",
+                    "Exp C Acc": f"{entry.get('exp_c_combined_best_acc', 0):.4f}",
+                })
+            st.dataframe(pd.DataFrame(impact_rows), use_container_width=True, hide_index=True)
+
+            # Delta bar chart
+            delta_df = pd.DataFrame([{
+                "Model": e["model"],
+                "F1 Delta": e.get("exp_c_combined_f1_delta", 0),
+            } for e in impact_data])
+            fig_delta = px.bar(
+                delta_df, x="Model", y="F1 Delta",
+                color="F1 Delta", color_continuous_scale="RdYlGn",
+                range_color=[-0.25, 0.05],
+            )
+            fig_delta.update_layout(
+                height=300, margin=dict(l=0, r=0, t=10, b=30),
+                coloraxis_showscale=False, xaxis_title="",
+                yaxis_title="F1 Delta (Exp B → Exp C)",
+            )
+            fig_delta.add_hline(y=0, line_dash="dash", line_color="gray")
+            st.plotly_chart(fig_delta, use_container_width=True)
+    else:
+        st.info(
+            "No cross-experiment report found. "
+            "Run `python compare_bigvul_impact.py` to generate."
+        )
 
 # ==================== TEST ENVIRONMENT ====================
 if nav_page == "Test Environment":

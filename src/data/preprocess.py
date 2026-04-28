@@ -106,9 +106,20 @@ def normalize_whitespace(code: str) -> str:
 
 
 def preprocess(code: str) -> str:
-    """Full preprocessing pipeline for a code sample."""
+    """Full preprocessing pipeline for a Juliet code sample."""
     code = remove_file_header(code)
     code = remove_comments(code)
     code = remove_preprocessor_guards(code)
+    code = normalize_whitespace(code)
+    return code
+
+
+def preprocess_bigvul(code: str) -> str:
+    """Preprocessing pipeline for Big-Vul code samples.
+
+    Skips Juliet-specific steps (file header removal, preprocessor guard
+    removal) since Big-Vul contains real-world code without those patterns.
+    """
+    code = remove_comments(code)
     code = normalize_whitespace(code)
     return code

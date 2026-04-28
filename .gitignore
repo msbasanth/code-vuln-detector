@@ -9,11 +9,14 @@ env/
 
 # Data (large files)
 datasets/
-data/processed/
+data/processed/*.parquet
 
-# Outputs
+# Outputs — large binary files only
 outputs/checkpoints/
-outputs/logs/
+outputs/**/checkpoints/
+*.pt
+# TensorBoard event files (large, regenerable)
+events.out.tfevents.*
 
 # IDE
 .vscode/

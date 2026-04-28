@@ -1,0 +1,44 @@
+{
+  "model": "Salesforce/codet5-small",
+  "model_variant": "codet5-small",
+  "epoch_metrics": [
+    {
+      "epoch": 1,
+      "train_loss": 0.163764,
+      "test_loss": 0.012159,
+      "test_acc": 0.997238,
+      "test_f1": 0.936964,
+      "test_precision": 0.934922,
+      "test_recall": 0.940974,
+      "best_f1_so_far": 0.936964,
+      "best_acc_so_far": 0.997238,
+      "best_precision_so_far": 0.934922,
+      "best_recall_so_far": 0.940974,
+      "training_time_seconds": 1410.0
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.006461,
+      "test_loss": 0.012804,
+      "test_acc": 0.996659,
+      "test_f1": 0.920104,
+      "test_precision": 0.920201,
+      "test_recall": 0.920056,
+      "best_f1_so_far": 0.936964,
+      "best_acc_so_far": 0.997238,
+      "best_precision_so_far": 0.934922,
+      "best_recall_so_far": 0.940974,
+      "training_time_seconds": 2885.0
+    }
+  ],
+  "best_metrics": {
+    "best_f1": 0.9369636626953873,
+    "best_acc": 0.9972379382545552,
+    "best_precision": 0.9349222606383145,
+    "best_recall": 0.9409744590633977,
+    "best_f1_epoch": 1,
+    "best_acc_epoch": 1,
+    "best_precision_epoch": 1,
+    "best_recall_epoch": 1
+  }
+}

@@ -209,6 +209,13 @@ def main():
         print(f"No .c/.cpp files found in {args.path}")
         sys.exit(1)
 
+    # Risk prioritizer
+    from src.risk import HealthcareRiskPrioritizer
+    try:
+        prioritizer = HealthcareRiskPrioritizer()
+    except FileNotFoundError:
+        prioritizer = None
+
     # Predict
     for filepath in files:
         print(f"\n{'='*60}")
@@ -224,6 +231,16 @@ def main():
         for i, r in enumerate(results, 1):
             bar = "#" * int(r["confidence"] * 40)
             print(f"  {i}. {r['cwe']:>10}  {r['confidence']:.4f}  {bar}")
+
+        # Healthcare risk assessment for top prediction
+        if prioritizer and results:
+            top = results[0]
+            assessment = prioritizer.assess(top["cwe"], top["confidence"])
+            print(f"\n  Healthcare Risk Assessment (top prediction):")
+            print(f"    Priority:     {assessment.priority_level}")
+            print(f"    Risk Score:   {assessment.risk_score:.4f}")
+            print(f"    Threats:      {', '.join(assessment.threat_types)}")
+            print(f"    Domains:      {', '.join(assessment.control_domains)}")
 
 
 if __name__ == "__main__":

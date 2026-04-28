@@ -1,0 +1,44 @@
+{
+  "model": "Salesforce/codet5-small",
+  "model_variant": "codet5-small",
+  "epoch_metrics": [
+    {
+      "epoch": 1,
+      "train_loss": 0.371746,
+      "test_loss": 0.246552,
+      "test_acc": 0.93901,
+      "test_f1": 0.583138,
+      "test_precision": 0.584608,
+      "test_recall": 0.588535,
+      "best_f1_so_far": 0.583138,
+      "best_acc_so_far": 0.93901,
+      "best_precision_so_far": 0.584608,
+      "best_recall_so_far": 0.588535,
+      "training_time_seconds": 1045.4
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.141994,
+      "test_loss": 0.254714,
+      "test_acc": 0.942196,
+      "test_f1": 0.597356,
+      "test_precision": 0.605251,
+      "test_recall": 0.597512,
+      "best_f1_so_far": 0.597356,
+      "best_acc_so_far": 0.942196,
+      "best_precision_so_far": 0.605251,
+      "best_recall_so_far": 0.597512,
+      "training_time_seconds": 2207.8
+    }
+  ],
+  "best_metrics": {
+    "best_f1": 0.597356164522944,
+    "best_acc": 0.9421962926183383,
+    "best_precision": 0.6052510607600686,
+    "best_recall": 0.5975123452303652,
+    "best_f1_epoch": 2,
+    "best_acc_epoch": 2,
+    "best_precision_epoch": 2,
+    "best_recall_epoch": 2
+  }
+}

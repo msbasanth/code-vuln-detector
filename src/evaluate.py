@@ -80,16 +80,41 @@ def main():
     parser.add_argument("--config", default="config.yaml", help="Config file path")
     parser.add_argument("--checkpoint", default=None, help="Checkpoint path (default: best.pt)")
     parser.add_argument("--qlora", action="store_true", help="Evaluate QLoRA model instead of encoder model")
+    parser.add_argument("--experiment", default=None, help="Experiment name (e.g. exp_a_juliet118)")
+    parser.add_argument("--model", default=None, help="Model name override (e.g. Salesforce/codet5-small)")
+    parser.add_argument("--test-path", default=None, help="Override test parquet path")
+    parser.add_argument("--label-map-path", default=None, help="Override label map JSON path")
+    parser.add_argument("--output-dir", default=None, help="Override output directory")
     args = parser.parse_args()
 
     config = load_config(args.config)
     if args.qlora:
         config["qlora_eval"] = True
+
+    # Apply CLI overrides
+    if args.model:
+        config["model_name"] = args.model
+    if args.test_path:
+        config["test_path"] = args.test_path
+    if args.label_map_path:
+        config["label_map_path"] = args.label_map_path
+
+    # Determine output directory
+    if args.output_dir:
+        output_dir = args.output_dir
+    elif args.experiment:
+        model_variant = config["model_name"].split("/")[-1]
+        output_dir = os.path.join("outputs", args.experiment, model_variant)
+    else:
+        output_dir = "outputs"
+
     logger = setup_logging()
     device = get_device()
 
     # Load label map (int_label → CWE name)
     label_map = load_label_map(config["label_map_path"])
+    # Override num_classes to match the label map (important for 19-CWE experiments)
+    config["num_classes"] = len(label_map)
     inv_label_map = {v: k for k, v in label_map.items()}
     label_names = [f"CWE-{inv_label_map[i]}" for i in range(len(label_map))]
 
@@ -140,7 +165,13 @@ def main():
             pin_memory=config.get("pin_memory", True),
         )
     else:
-        checkpoint_path = args.checkpoint or os.path.join(config["checkpoint_dir"], "best.pt")
+        if args.checkpoint:
+            checkpoint_path = args.checkpoint
+        elif args.experiment:
+            model_variant = config["model_name"].split("/")[-1]
+            checkpoint_path = os.path.join("outputs", args.experiment, "checkpoints", model_variant, "best.pt")
+        else:
+            checkpoint_path = os.path.join(config["checkpoint_dir"], "best.pt")
         logger.info(f"Loading checkpoint: {checkpoint_path}")
 
         model = CWEClassifier(
@@ -187,19 +218,57 @@ def main():
     confused = get_confused_pairs(all_labels, all_preds, label_names)
 
     # Save outputs
-    os.makedirs("outputs", exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
-    with open("outputs/metrics.json", "w") as f:
+    with open(os.path.join(output_dir, "metrics.json"), "w") as f:
         json.dump(metrics, f, indent=2)
 
-    with open("outputs/classification_report.txt", "w") as f:
+    with open(os.path.join(output_dir, "classification_report.txt"), "w") as f:
         f.write(report)
 
-    pd.DataFrame(confused).to_csv("outputs/confusion_pairs.csv", index=False)
+    pd.DataFrame(confused).to_csv(os.path.join(output_dir, "confusion_pairs.csv"), index=False)
 
-    logger.info(f"Saved metrics to outputs/metrics.json")
-    logger.info(f"Saved classification report to outputs/classification_report.txt")
-    logger.info(f"Saved confusion pairs to outputs/confusion_pairs.csv")
+    logger.info(f"Saved metrics to {output_dir}/metrics.json")
+
+    # Source-stratified evaluation (for combined datasets)
+    experiment = config.get("experiment", {})
+    dataset_mode = experiment.get("dataset_mode", "juliet_only")
+    test_path = config["test_path"]
+    if dataset_mode != "juliet_only":
+        test_path = experiment.get("combined_test_path", test_path)
+
+    test_df = pd.read_parquet(test_path)
+    if "source" in test_df.columns:
+        logger.info("--- Source-Stratified Evaluation ---")
+        sources = test_df["source"].values
+
+        for src_name in sorted(test_df["source"].unique()):
+            src_mask = [s == src_name for s in sources]
+            src_preds = [p for p, m in zip(all_preds, src_mask) if m]
+            src_labels = [l for l, m in zip(all_labels, src_mask) if m]
+
+            if not src_labels:
+                continue
+
+            src_metrics = {
+                "source": src_name,
+                "sample_count": len(src_labels),
+                "accuracy": accuracy_score(src_labels, src_preds),
+                "macro_precision": precision_score(src_labels, src_preds, average="macro", zero_division=0),
+                "macro_recall": recall_score(src_labels, src_preds, average="macro", zero_division=0),
+                "macro_f1": f1_score(src_labels, src_preds, average="macro", zero_division=0),
+                "weighted_f1": f1_score(src_labels, src_preds, average="weighted", zero_division=0),
+            }
+
+            logger.info(f"  {src_name}: acc={src_metrics['accuracy']:.4f}, "
+                        f"f1={src_metrics['macro_f1']:.4f}, n={src_metrics['sample_count']}")
+
+            with open(os.path.join(output_dir, f"metrics_{src_name}.json"), "w") as f:
+                json.dump(src_metrics, f, indent=2)
+
+        logger.info(f"Saved source-stratified metrics to {output_dir}/metrics_<source>.json")
+    logger.info(f"Saved classification report to {output_dir}/classification_report.txt")
+    logger.info(f"Saved confusion pairs to {output_dir}/confusion_pairs.csv")
 
     # Print summary
     print("\n--- Classification Report (abbreviated) ---")

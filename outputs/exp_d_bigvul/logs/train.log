@@ -1,0 +1,49 @@
+2026-04-25 18:39:27 | INFO     | Using device: cuda
+2026-04-25 18:39:27 | INFO     | Loading data...
+2026-04-25 18:39:34 | INFO     | Train batches: 877, Test batches: 213
+2026-04-25 18:39:38 | INFO     | Model parameters — total: 35,344,695, trainable: 35,344,695
+2026-04-25 18:39:38 | INFO     | Mixed precision (fp16): True
+2026-04-25 18:40:27 | INFO     | Evaluating on test set...
+2026-04-25 18:40:34 | INFO     | Epoch 1 | Train Loss: 2.6880 | Test Loss: 2.8758 | Test Acc: 0.2328 | Test Macro-F1: 0.0368 | Test Precision: 0.0441 | Test Recall: 0.0422 | Time: 49s
+2026-04-25 18:40:35 | INFO     | New best model saved (Macro-F1: 0.0368)
+2026-04-25 18:41:22 | INFO     | Evaluating on test set...
+2026-04-25 18:41:29 | INFO     | Epoch 2 | Train Loss: 1.9684 | Test Loss: 2.9350 | Test Acc: 0.2810 | Test Macro-F1: 0.0462 | Test Precision: 0.0597 | Test Recall: 0.0509 | Time: 47s
+2026-04-25 18:41:30 | INFO     | New best model saved (Macro-F1: 0.0462)
+2026-04-25 18:41:30 | INFO     | Training complete. Best Macro-F1: 0.0462
+2026-04-25 18:41:38 | INFO     | Using device: cuda
+2026-04-25 18:41:38 | INFO     | Loading data...
+2026-04-25 18:41:46 | INFO     | Train batches: 877, Test batches: 213
+2026-04-25 18:41:52 | INFO     | Model parameters — total: 109,649,335, trainable: 109,649,335
+2026-04-25 18:41:52 | INFO     | Mixed precision (fp16): True
+2026-04-25 18:44:26 | INFO     | Evaluating on test set...
+2026-04-25 18:44:52 | INFO     | Epoch 1 | Train Loss: 2.5384 | Test Loss: 2.8336 | Test Acc: 0.2257 | Test Macro-F1: 0.0333 | Test Precision: 0.0582 | Test Recall: 0.0399 | Time: 154s
+2026-04-25 18:44:57 | INFO     | New best model saved (Macro-F1: 0.0333)
+2026-04-25 18:47:51 | INFO     | Evaluating on test set...
+2026-04-25 18:48:17 | INFO     | Epoch 2 | Train Loss: 1.6613 | Test Loss: 3.0766 | Test Acc: 0.1899 | Test Macro-F1: 0.0656 | Test Precision: 0.1017 | Test Recall: 0.0719 | Time: 174s
+2026-04-25 18:48:22 | INFO     | New best model saved (Macro-F1: 0.0656)
+2026-04-25 18:48:22 | INFO     | Training complete. Best Macro-F1: 0.0656
+2026-04-25 18:48:38 | INFO     | Using device: cuda
+2026-04-25 18:48:38 | INFO     | Loading data...
+2026-04-25 18:48:44 | INFO     | Train batches: 877, Test batches: 213
+2026-04-25 18:48:47 | INFO     | Model parameters — total: 124,687,927, trainable: 124,687,927
+2026-04-25 18:48:47 | INFO     | Mixed precision (fp16): True
+2026-04-25 18:51:23 | INFO     | Evaluating on test set...
+2026-04-25 18:51:45 | INFO     | Epoch 1 | Train Loss: 2.8644 | Test Loss: 2.9380 | Test Acc: 0.2499 | Test Macro-F1: 0.0074 | Test Precision: 0.0046 | Test Recall: 0.0185 | Time: 155s
+2026-04-25 18:51:52 | INFO     | New best model saved (Macro-F1: 0.0074)
+2026-04-25 18:54:23 | INFO     | Evaluating on test set...
+2026-04-25 18:54:45 | INFO     | Epoch 2 | Train Loss: 2.8165 | Test Loss: 2.9534 | Test Acc: 0.2499 | Test Macro-F1: 0.0074 | Test Precision: 0.0046 | Test Recall: 0.0185 | Time: 151s
+2026-04-25 18:54:49 | INFO     | No improvement. Patience: 1/1
+2026-04-25 18:54:49 | INFO     | Early stopping triggered
+2026-04-25 18:54:49 | INFO     | Training complete. Best Macro-F1: 0.0074
+2026-04-25 18:56:24 | INFO     | Using device: cuda
+2026-04-25 18:56:24 | INFO     | Loading data...
+2026-04-25 18:56:29 | INFO     | Train batches: 877, Test batches: 213
+2026-04-25 18:56:34 | INFO     | Model parameters — total: 124,687,927, trainable: 124,687,927
+2026-04-25 18:56:34 | INFO     | Mixed precision (fp16): True
+2026-04-25 18:59:14 | INFO     | Evaluating on test set...
+2026-04-25 18:59:38 | INFO     | Epoch 1 | Train Loss: 2.2934 | Test Loss: 2.9158 | Test Acc: 0.2663 | Test Macro-F1: 0.0579 | Test Precision: 0.0665 | Test Recall: 0.0696 | Time: 160s
+2026-04-25 18:59:44 | INFO     | New best model saved (Macro-F1: 0.0579)
+2026-04-25 19:02:28 | INFO     | Evaluating on test set...
+2026-04-25 19:02:51 | INFO     | Epoch 2 | Train Loss: 1.3947 | Test Loss: 3.2868 | Test Acc: 0.2281 | Test Macro-F1: 0.0730 | Test Precision: 0.1093 | Test Recall: 0.0732 | Time: 164s
+2026-04-25 19:02:58 | INFO     | New best model saved (Macro-F1: 0.0730)
+2026-04-25 19:02:58 | INFO     | Training complete. Best Macro-F1: 0.0730

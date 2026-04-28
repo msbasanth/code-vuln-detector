@@ -1,0 +1,74 @@
+2026-04-16 09:48:41 | INFO     | Using device: cuda
+2026-04-16 09:48:41 | INFO     | Loading data...
+2026-04-16 09:48:48 | INFO     | Train batches: 10342, Test batches: 2806
+2026-04-16 09:48:54 | INFO     | Model parameters — total: 35,377,014, trainable: 35,377,014
+2026-04-16 09:48:54 | INFO     | Mixed precision (fp16): True
+2026-04-16 09:48:54 | INFO     | Resuming from outputs/checkpoints\latest.pt
+2026-04-16 09:48:55 | INFO     | Resumed at epoch 1, best F1: 0.9156
+2026-04-16 10:01:21 | INFO     | Evaluating on test set...
+2026-04-16 10:02:51 | INFO     | Epoch 2 | Train Loss: 0.0063 | Test Loss: 0.0102 | Test Acc: 0.9980 | Test Macro-F1: 0.9533 | Time: 746s
+2026-04-16 10:02:52 | INFO     | New best model saved (Macro-F1: 0.9533)
+2026-04-16 10:02:52 | INFO     | Training complete. Best Macro-F1: 0.9533
+2026-04-19 18:17:19 | INFO     | Using device: cuda
+2026-04-19 18:17:19 | INFO     | Loading data...
+2026-04-19 18:17:34 | INFO     | Train batches: 10342, Test batches: 2806
+2026-04-19 18:17:41 | INFO     | Model parameters — total: 109,697,782, trainable: 109,697,782
+2026-04-19 18:17:41 | INFO     | Mixed precision (fp16): True
+2026-04-19 18:27:34 | INFO     | Using device: cuda
+2026-04-19 18:27:34 | INFO     | Loading data...
+2026-04-19 18:27:40 | INFO     | Train batches: 10342, Test batches: 2806
+2026-04-19 18:27:45 | INFO     | Model parameters — total: 109,697,782, trainable: 109,697,782
+2026-04-19 18:27:45 | INFO     | Mixed precision (fp16): True
+2026-04-19 19:30:12 | INFO     | Using device: cuda
+2026-04-19 19:30:12 | INFO     | Loading data...
+2026-04-19 19:30:18 | INFO     | Train batches: 10342, Test batches: 2806
+2026-04-19 19:30:26 | INFO     | Model parameters — total: 109,697,782, trainable: 109,697,782
+2026-04-19 19:30:26 | INFO     | Mixed precision (fp16): True
+2026-04-19 19:59:12 | INFO     | Evaluating on test set...
+2026-04-19 20:03:48 | INFO     | Epoch 1 | Train Loss: 0.1272 | Test Loss: 0.0123 | Test Acc: 0.9973 | Test Macro-F1: 0.9485 | Time: 1725s
+2026-04-19 20:03:54 | INFO     | New best model saved (Macro-F1: 0.9485)
+2026-04-19 20:31:47 | INFO     | Evaluating on test set...
+2026-04-19 20:36:24 | INFO     | Epoch 2 | Train Loss: 0.0105 | Test Loss: 0.0090 | Test Acc: 0.9978 | Test Macro-F1: 0.9605 | Time: 1673s
+2026-04-19 20:36:29 | INFO     | New best model saved (Macro-F1: 0.9605)
+2026-04-19 20:36:29 | INFO     | Training complete. Best Macro-F1: 0.9605
+2026-04-19 21:35:41 | INFO     | Using device: cuda
+2026-04-19 21:35:41 | INFO     | Loading data...
+2026-04-19 21:35:53 | INFO     | Train batches: 10342, Test batches: 2806
+2026-04-19 21:35:57 | INFO     | Model parameters — total: 124,736,374, trainable: 124,736,374
+2026-04-19 21:35:57 | INFO     | Mixed precision (fp16): True
+2026-04-19 22:01:29 | INFO     | Evaluating on test set...
+2026-04-19 22:05:26 | INFO     | Epoch 1 | Train Loss: 0.0817 | Test Loss: 0.0212 | Test Acc: 0.9963 | Test Macro-F1: 0.9512 | Time: 1532s
+2026-04-19 22:05:29 | INFO     | New best model saved (Macro-F1: 0.9512)
+2026-04-20 07:48:29 | INFO     | Using device: cuda
+2026-04-20 07:48:29 | INFO     | Loading data...
+2026-04-20 07:48:33 | INFO     | Train batches: 10342, Test batches: 2806
+2026-04-20 07:48:35 | INFO     | Model parameters — total: 124,736,374, trainable: 124,736,374
+2026-04-20 07:48:35 | INFO     | Mixed precision (fp16): True
+2026-04-20 07:48:35 | INFO     | Resuming from outputs/checkpoints\codebert-base\latest.pt
+2026-04-20 07:48:36 | INFO     | Resumed at epoch 1, best F1: 0.9512
+2026-04-20 08:09:22 | INFO     | Evaluating on test set...
+2026-04-20 08:13:25 | INFO     | Epoch 2 | Train Loss: 0.0160 | Test Loss: 0.0148 | Test Acc: 0.9971 | Test Macro-F1: 0.9377 | Time: 1246s
+2026-04-20 08:13:28 | INFO     | No improvement. Patience: 1/1
+2026-04-20 08:13:28 | INFO     | Early stopping triggered
+2026-04-20 08:13:28 | INFO     | Training complete. Best Macro-F1: 0.9512
+2026-04-20 10:52:09 | INFO     | Using device: cuda
+2026-04-20 10:52:09 | INFO     | Loading data...
+2026-04-20 10:52:22 | INFO     | Train batches: 10342, Test batches: 2806
+2026-04-20 10:53:00 | INFO     | Model parameters — total: 124,736,374, trainable: 124,736,374
+2026-04-20 10:53:00 | INFO     | Mixed precision (fp16): True
+2026-04-20 11:16:05 | INFO     | Evaluating on test set...
+2026-04-20 11:20:05 | INFO     | Epoch 1 | Train Loss: 0.0617 | Test Loss: 0.0114 | Test Acc: 0.9975 | Test Macro-F1: 0.9530 | Time: 1385s
+2026-04-20 11:20:08 | INFO     | New best model saved (Macro-F1: 0.9530)
+2026-04-20 11:40:08 | INFO     | Evaluating on test set...
+2026-04-20 11:44:00 | INFO     | Epoch 2 | Train Loss: 0.0138 | Test Loss: 0.0361 | Test Acc: 0.9928 | Test Macro-F1: 0.8952 | Time: 1201s
+2026-04-20 11:44:02 | INFO     | No improvement. Patience: 1/1
+2026-04-20 11:44:02 | INFO     | Early stopping triggered
+2026-04-20 11:44:02 | INFO     | Training complete. Best Macro-F1: 0.9530
+2026-04-25 09:25:22 | INFO     | Using device: cuda
+2026-04-25 09:25:22 | INFO     | Loading data...
+2026-04-25 09:25:25 | INFO     | Train batches: 10342, Test batches: 2806
+2026-04-25 09:25:28 | INFO     | Model parameters — total: 124,736,374, trainable: 124,736,374
+2026-04-25 09:25:28 | INFO     | Mixed precision (fp16): True
+2026-04-25 09:25:28 | INFO     | Resuming from outputs/checkpoints\graphcodebert-base\latest.pt
+2026-04-25 09:25:28 | INFO     | Resumed at epoch 2, best F1: 0.9530
+2026-04-25 09:25:28 | INFO     | Training complete. Best Macro-F1: 0.9530

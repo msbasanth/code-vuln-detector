@@ -1,0 +1,44 @@
+{
+  "model": "microsoft/codebert-base",
+  "model_variant": "codebert-base",
+  "epoch_metrics": [
+    {
+      "epoch": 1,
+      "train_loss": 0.11821,
+      "test_loss": 0.177223,
+      "test_acc": 0.956516,
+      "test_f1": 0.759308,
+      "test_precision": 0.805929,
+      "test_recall": 0.742635,
+      "best_f1_so_far": 0.759308,
+      "best_acc_so_far": 0.956516,
+      "best_precision_so_far": 0.805929,
+      "best_recall_so_far": 0.742635,
+      "training_time_seconds": 443.6
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.059158,
+      "test_loss": 0.155805,
+      "test_acc": 0.956775,
+      "test_f1": 0.80109,
+      "test_precision": 0.832292,
+      "test_recall": 0.806188,
+      "best_f1_so_far": 0.80109,
+      "best_acc_so_far": 0.956775,
+      "best_precision_so_far": 0.832292,
+      "best_recall_so_far": 0.806188,
+      "training_time_seconds": 938.1
+    }
+  ],
+  "best_metrics": {
+    "best_f1": 0.8010903324628224,
+    "best_acc": 0.9567749449980587,
+    "best_precision": 0.8322916525481733,
+    "best_recall": 0.8061884516628036,
+    "best_f1_epoch": 2,
+    "best_acc_epoch": 2,
+    "best_precision_epoch": 2,
+    "best_recall_epoch": 2
+  }
+}

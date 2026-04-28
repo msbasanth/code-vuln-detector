@@ -1,0 +1,1513 @@
+{
+  "juliet_total_samples": 105183,
+  "bigvul_total_samples": 8783,
+  "juliet_cwe_count": 118,
+  "bigvul_cwe_count": 88,
+  "shared_cwe_count": 19,
+  "juliet_only_cwe_count": 99,
+  "bigvul_only_cwe_count": 69,
+  "shared_cwes": [
+    78,
+    90,
+    134,
+    190,
+    191,
+    252,
+    284,
+    327,
+    369,
+    400,
+    404,
+    415,
+    416,
+    426,
+    476,
+    617,
+    665,
+    674,
+    835
+  ],
+  "juliet_only_cwes": [
+    15,
+    23,
+    36,
+    114,
+    121,
+    122,
+    123,
+    124,
+    126,
+    127,
+    176,
+    188,
+    194,
+    195,
+    196,
+    197,
+    222,
+    223,
+    226,
+    242,
+    244,
+    247,
+    253,
+    256,
+    259,
+    272,
+    273,
+    319,
+    321,
+    325,
+    328,
+    338,
+    364,
+    366,
+    367,
+    377,
+    390,
+    391,
+    396,
+    397,
+    398,
+    401,
+    427,
+    440,
+    457,
+    459,
+    464,
+    467,
+    468,
+    469,
+    475,
+    478,
+    479,
+    480,
+    481,
+    482,
+    483,
+    484,
+    500,
+    506,
+    510,
+    511,
+    526,
+    534,
+    535,
+    546,
+    561,
+    562,
+    563,
+    570,
+    571,
+    587,
+    588,
+    590,
+    591,
+    605,
+    606,
+    615,
+    620,
+    666,
+    667,
+    672,
+    675,
+    676,
+    680,
+    681,
+    685,
+    688,
+    690,
+    758,
+    761,
+    762,
+    773,
+    775,
+    780,
+    785,
+    789,
+    832,
+    843
+  ],
+  "bigvul_only_cwes": [
+    16,
+    17,
+    18,
+    19,
+    20,
+    22,
+    59,
+    74,
+    77,
+    79,
+    89,
+    94,
+    119,
+    120,
+    125,
+    129,
+    172,
+    189,
+    200,
+    209,
+    254,
+    255,
+    264,
+    269,
+    281,
+    285,
+    287,
+    290,
+    295,
+    310,
+    311,
+    320,
+    330,
+    331,
+    345,
+    346,
+    347,
+    352,
+    354,
+    358,
+    361,
+    362,
+    388,
+    399,
+    436,
+    494,
+    502,
+    522,
+    532,
+    601,
+    611,
+    664,
+    668,
+    682,
+    693,
+    704,
+    732,
+    754,
+    755,
+    763,
+    770,
+    772,
+    787,
+    824,
+    834,
+    862,
+    909,
+    918,
+    1021
+  ],
+  "per_cwe": [
+    {
+      "cwe_id": 15,
+      "juliet_samples": 82,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 16,
+      "juliet_samples": 0,
+      "bigvul_samples": 1,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 17,
+      "juliet_samples": 0,
+      "bigvul_samples": 51,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 18,
+      "juliet_samples": 0,
+      "bigvul_samples": 34,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 19,
+      "juliet_samples": 0,
+      "bigvul_samples": 55,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 20,
+      "juliet_samples": 0,
+      "bigvul_samples": 1142,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 22,
+      "juliet_samples": 0,
+      "bigvul_samples": 35,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 23,
+      "juliet_samples": 4100,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 36,
+      "juliet_samples": 4100,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 59,
+      "juliet_samples": 0,
+      "bigvul_samples": 52,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 74,
+      "juliet_samples": 0,
+      "bigvul_samples": 3,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 77,
+      "juliet_samples": 0,
+      "bigvul_samples": 11,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 78,
+      "juliet_samples": 8200,
+      "bigvul_samples": 11,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 79,
+      "juliet_samples": 0,
+      "bigvul_samples": 55,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 89,
+      "juliet_samples": 0,
+      "bigvul_samples": 5,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 90,
+      "juliet_samples": 820,
+      "bigvul_samples": 2,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 94,
+      "juliet_samples": 0,
+      "bigvul_samples": 11,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 114,
+      "juliet_samples": 984,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 119,
+      "juliet_samples": 0,
+      "bigvul_samples": 2127,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 120,
+      "juliet_samples": 0,
+      "bigvul_samples": 7,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 121,
+      "juliet_samples": 8177,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 122,
+      "juliet_samples": 10116,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 123,
+      "juliet_samples": 246,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 124,
+      "juliet_samples": 3456,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 125,
+      "juliet_samples": 0,
+      "bigvul_samples": 625,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 126,
+      "juliet_samples": 2388,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 127,
+      "juliet_samples": 3456,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 129,
+      "juliet_samples": 0,
+      "bigvul_samples": 4,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 134,
+      "juliet_samples": 5160,
+      "bigvul_samples": 20,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 172,
+      "juliet_samples": 0,
+      "bigvul_samples": 4,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 176,
+      "juliet_samples": 86,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 188,
+      "juliet_samples": 36,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 189,
+      "juliet_samples": 0,
+      "bigvul_samples": 337,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 190,
+      "juliet_samples": 6660,
+      "bigvul_samples": 307,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 191,
+      "juliet_samples": 4854,
+      "bigvul_samples": 3,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 194,
+      "juliet_samples": 1968,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 195,
+      "juliet_samples": 1968,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 196,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 197,
+      "juliet_samples": 1476,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 200,
+      "juliet_samples": 0,
+      "bigvul_samples": 503,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 209,
+      "juliet_samples": 0,
+      "bigvul_samples": 1,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 222,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 223,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 226,
+      "juliet_samples": 72,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 242,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 244,
+      "juliet_samples": 72,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 247,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 252,
+      "juliet_samples": 630,
+      "bigvul_samples": 1,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 253,
+      "juliet_samples": 684,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 254,
+      "juliet_samples": 0,
+      "bigvul_samples": 123,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 255,
+      "juliet_samples": 0,
+      "bigvul_samples": 7,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 256,
+      "juliet_samples": 172,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 259,
+      "juliet_samples": 164,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 264,
+      "juliet_samples": 0,
+      "bigvul_samples": 508,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 269,
+      "juliet_samples": 0,
+      "bigvul_samples": 38,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 272,
+      "juliet_samples": 252,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 273,
+      "juliet_samples": 36,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 281,
+      "juliet_samples": 0,
+      "bigvul_samples": 7,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 284,
+      "juliet_samples": 216,
+      "bigvul_samples": 177,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 285,
+      "juliet_samples": 0,
+      "bigvul_samples": 26,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 287,
+      "juliet_samples": 0,
+      "bigvul_samples": 26,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 290,
+      "juliet_samples": 0,
+      "bigvul_samples": 1,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 295,
+      "juliet_samples": 0,
+      "bigvul_samples": 5,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 310,
+      "juliet_samples": 0,
+      "bigvul_samples": 94,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 311,
+      "juliet_samples": 0,
+      "bigvul_samples": 19,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 319,
+      "juliet_samples": 344,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 320,
+      "juliet_samples": 0,
+      "bigvul_samples": 8,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 321,
+      "juliet_samples": 164,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 325,
+      "juliet_samples": 72,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 327,
+      "juliet_samples": 54,
+      "bigvul_samples": 2,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 328,
+      "juliet_samples": 54,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 330,
+      "juliet_samples": 0,
+      "bigvul_samples": 3,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 331,
+      "juliet_samples": 0,
+      "bigvul_samples": 1,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 338,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 345,
+      "juliet_samples": 0,
+      "bigvul_samples": 2,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 346,
+      "juliet_samples": 0,
+      "bigvul_samples": 4,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 347,
+      "juliet_samples": 0,
+      "bigvul_samples": 7,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 352,
+      "juliet_samples": 0,
+      "bigvul_samples": 1,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 354,
+      "juliet_samples": 0,
+      "bigvul_samples": 7,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 358,
+      "juliet_samples": 0,
+      "bigvul_samples": 20,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 361,
+      "juliet_samples": 0,
+      "bigvul_samples": 1,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 362,
+      "juliet_samples": 0,
+      "bigvul_samples": 278,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 364,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 366,
+      "juliet_samples": 36,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 367,
+      "juliet_samples": 36,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 369,
+      "juliet_samples": 1548,
+      "bigvul_samples": 34,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 377,
+      "juliet_samples": 144,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 388,
+      "juliet_samples": 0,
+      "bigvul_samples": 10,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 390,
+      "juliet_samples": 90,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 391,
+      "juliet_samples": 54,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 396,
+      "juliet_samples": 54,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 397,
+      "juliet_samples": 20,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 398,
+      "juliet_samples": 181,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 399,
+      "juliet_samples": 0,
+      "bigvul_samples": 736,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 400,
+      "juliet_samples": 1290,
+      "bigvul_samples": 48,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 401,
+      "juliet_samples": 2812,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 404,
+      "juliet_samples": 656,
+      "bigvul_samples": 62,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 415,
+      "juliet_samples": 1724,
+      "bigvul_samples": 81,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 416,
+      "juliet_samples": 520,
+      "bigvul_samples": 330,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 426,
+      "juliet_samples": 328,
+      "bigvul_samples": 4,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 427,
+      "juliet_samples": 820,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 436,
+      "juliet_samples": 0,
+      "bigvul_samples": 4,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 440,
+      "juliet_samples": 1,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 457,
+      "juliet_samples": 1079,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 459,
+      "juliet_samples": 36,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 464,
+      "juliet_samples": 82,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 467,
+      "juliet_samples": 54,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 468,
+      "juliet_samples": 37,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 469,
+      "juliet_samples": 36,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 475,
+      "juliet_samples": 36,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 476,
+      "juliet_samples": 544,
+      "bigvul_samples": 215,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 478,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 479,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 480,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 481,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 482,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 483,
+      "juliet_samples": 20,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 484,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 494,
+      "juliet_samples": 0,
+      "bigvul_samples": 3,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 500,
+      "juliet_samples": 2,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 502,
+      "juliet_samples": 0,
+      "bigvul_samples": 2,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 506,
+      "juliet_samples": 158,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 510,
+      "juliet_samples": 70,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 511,
+      "juliet_samples": 72,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 522,
+      "juliet_samples": 0,
+      "bigvul_samples": 2,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 526,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 532,
+      "juliet_samples": 0,
+      "bigvul_samples": 2,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 534,
+      "juliet_samples": 36,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 535,
+      "juliet_samples": 36,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 546,
+      "juliet_samples": 90,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 561,
+      "juliet_samples": 2,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 562,
+      "juliet_samples": 3,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 563,
+      "juliet_samples": 826,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 570,
+      "juliet_samples": 16,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 571,
+      "juliet_samples": 16,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 587,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 588,
+      "juliet_samples": 130,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 590,
+      "juliet_samples": 4355,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 591,
+      "juliet_samples": 164,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 601,
+      "juliet_samples": 0,
+      "bigvul_samples": 3,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 605,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 606,
+      "juliet_samples": 860,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 611,
+      "juliet_samples": 0,
+      "bigvul_samples": 7,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 615,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 617,
+      "juliet_samples": 510,
+      "bigvul_samples": 22,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 620,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 664,
+      "juliet_samples": 0,
+      "bigvul_samples": 1,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 665,
+      "juliet_samples": 330,
+      "bigvul_samples": 6,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 666,
+      "juliet_samples": 90,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 667,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 668,
+      "juliet_samples": 0,
+      "bigvul_samples": 1,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 672,
+      "juliet_samples": 85,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 674,
+      "juliet_samples": 2,
+      "bigvul_samples": 11,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 675,
+      "juliet_samples": 344,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 676,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 680,
+      "juliet_samples": 984,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 681,
+      "juliet_samples": 54,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 682,
+      "juliet_samples": 0,
+      "bigvul_samples": 11,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 685,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 688,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 690,
+      "juliet_samples": 1640,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 693,
+      "juliet_samples": 0,
+      "bigvul_samples": 2,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 704,
+      "juliet_samples": 0,
+      "bigvul_samples": 24,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 732,
+      "juliet_samples": 0,
+      "bigvul_samples": 66,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 754,
+      "juliet_samples": 0,
+      "bigvul_samples": 10,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 755,
+      "juliet_samples": 0,
+      "bigvul_samples": 2,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 758,
+      "juliet_samples": 581,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 761,
+      "juliet_samples": 984,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 762,
+      "juliet_samples": 6388,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 763,
+      "juliet_samples": 0,
+      "bigvul_samples": 2,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 770,
+      "juliet_samples": 0,
+      "bigvul_samples": 8,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 772,
+      "juliet_samples": 0,
+      "bigvul_samples": 46,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 773,
+      "juliet_samples": 246,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 775,
+      "juliet_samples": 246,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 780,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 785,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 787,
+      "juliet_samples": 0,
+      "bigvul_samples": 198,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 789,
+      "juliet_samples": 1720,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 824,
+      "juliet_samples": 0,
+      "bigvul_samples": 3,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 832,
+      "juliet_samples": 18,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 834,
+      "juliet_samples": 0,
+      "bigvul_samples": 13,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 835,
+      "juliet_samples": 6,
+      "bigvul_samples": 34,
+      "in_juliet": true,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 843,
+      "juliet_samples": 130,
+      "bigvul_samples": 0,
+      "in_juliet": true,
+      "in_bigvul": false
+    },
+    {
+      "cwe_id": 862,
+      "juliet_samples": 0,
+      "bigvul_samples": 4,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 909,
+      "juliet_samples": 0,
+      "bigvul_samples": 1,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 918,
+      "juliet_samples": 0,
+      "bigvul_samples": 2,
+      "in_juliet": false,
+      "in_bigvul": true
+    },
+    {
+      "cwe_id": 1021,
+      "juliet_samples": 0,
+      "bigvul_samples": 1,
+      "in_juliet": false,
+      "in_bigvul": true
+    }
+  ]
+}

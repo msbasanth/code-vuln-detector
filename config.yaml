@@ -77,3 +77,18 @@ qlora:
 
 # Logging
 log_every_n_steps: 100
+
+# Big-Vul Integration
+bigvul_csv_path: datasets/big-vul/MSR_data_cleaned.csv
+bigvul_samples_path: data/processed/bigvul_samples.parquet
+cwe_overlap_report_path: data/processed/cwe_overlap_report.json
+
+# Experiment Configuration
+experiment:
+  # dataset_mode: juliet_only | overlap_only | expanded
+  dataset_mode: juliet_only
+  bigvul_samples_path: data/processed/bigvul_samples.parquet
+  combined_samples_path: data/processed/combined_samples.parquet
+  combined_train_path: data/processed/combined_train.parquet
+  combined_test_path: data/processed/combined_test.parquet
+  combined_label_map_path: data/processed/combined_label_map.json

@@ -18,7 +18,7 @@ import torch.nn as nn
 from torch.amp import GradScaler, autocast
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, precision_score, recall_score
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.data.dataset import get_dataloaders
@@ -27,7 +27,7 @@ from src.utils import load_config, setup_logging, set_seed, get_device, count_pa
 
 
 def evaluate(model, dataloader, device):
-    """Run evaluation and return loss, accuracy, macro-F1."""
+    """Run evaluation and return loss, accuracy, macro-F1, precision, recall."""
     model.eval()
     criterion = nn.CrossEntropyLoss()
 
@@ -53,8 +53,10 @@ def evaluate(model, dataloader, device):
     avg_loss = total_loss / n
     accuracy = sum(p == l for p, l in zip(all_preds, all_labels)) / n
     macro_f1 = f1_score(all_labels, all_preds, average="macro", zero_division=0)
+    macro_precision = precision_score(all_labels, all_preds, average="macro", zero_division=0)
+    macro_recall = recall_score(all_labels, all_preds, average="macro", zero_division=0)
 
-    return avg_loss, accuracy, macro_f1
+    return avg_loss, accuracy, macro_f1, macro_precision, macro_recall
 
 
 def train(config: dict):
@@ -64,13 +66,29 @@ def train(config: dict):
 
     set_seed(config["seed"])
 
-    # Data
+    # Data — support combined datasets via experiment config
     logger.info("Loading data...")
-    train_loader, test_loader, tokenizer = get_dataloaders(config)
+    experiment = config.get("experiment", {})
+    dataset_mode = experiment.get("dataset_mode", "juliet_only")
+    if dataset_mode != "juliet_only":
+        # Use combined dataset paths
+        train_config = dict(config)
+        train_config["train_path"] = experiment.get("combined_train_path", config["train_path"])
+        train_config["test_path"] = experiment.get("combined_test_path", config["test_path"])
+        train_config["label_map_path"] = experiment.get("combined_label_map_path", config["label_map_path"])
+        # Update num_classes from combined label map
+        from src.utils import load_label_map
+        label_map = load_label_map(train_config["label_map_path"])
+        train_config["num_classes"] = len(label_map)
+        logger.info(f"Dataset mode: {dataset_mode}, num_classes: {train_config['num_classes']}")
+        train_loader, test_loader, tokenizer = get_dataloaders(train_config)
+        num_classes = train_config["num_classes"]
+    else:
+        train_loader, test_loader, tokenizer = get_dataloaders(config)
+        num_classes = config["num_classes"]
     logger.info(f"Train batches: {len(train_loader)}, Test batches: {len(test_loader)}")
 
     # Model
-    num_classes = config["num_classes"]
     model = CWEClassifier(
         model_name=config["model_name"],
         num_classes=num_classes,
@@ -123,6 +141,22 @@ def train(config: dict):
     accum_steps = config.get("gradient_accumulation_steps", 1)
     log_every = config.get("log_every_n_steps", 100)
     training_start = time.time()
+
+    # Per-epoch metrics log for before/after comparison
+    epoch_metrics_path = os.path.join(config["log_dir"], f"{model_variant}_epoch_metrics.json")
+    epoch_metrics_log = []
+
+    # Running best trackers (each metric tracked independently)
+    best_metrics = {
+        "best_f1": 0.0,
+        "best_acc": 0.0,
+        "best_precision": 0.0,
+        "best_recall": 0.0,
+        "best_f1_epoch": -1,
+        "best_acc_epoch": -1,
+        "best_precision_epoch": -1,
+        "best_recall_epoch": -1,
+    }
 
     for epoch in range(start_epoch, config["epochs"]):
         model.train()
@@ -179,7 +213,7 @@ def train(config: dict):
 
         # Evaluate
         logger.info("Evaluating on test set...")
-        test_loss, test_acc, test_f1 = evaluate(model, test_loader, device)
+        test_loss, test_acc, test_f1, test_prec, test_rec = evaluate(model, test_loader, device)
 
         logger.info(
             f"Epoch {epoch+1} | "
@@ -187,12 +221,57 @@ def train(config: dict):
             f"Test Loss: {test_loss:.4f} | "
             f"Test Acc: {test_acc:.4f} | "
             f"Test Macro-F1: {test_f1:.4f} | "
+            f"Test Precision: {test_prec:.4f} | "
+            f"Test Recall: {test_rec:.4f} | "
             f"Time: {epoch_time:.0f}s"
         )
 
         writer.add_scalar("test/loss", test_loss, epoch)
         writer.add_scalar("test/accuracy", test_acc, epoch)
         writer.add_scalar("test/macro_f1", test_f1, epoch)
+        writer.add_scalar("test/macro_precision", test_prec, epoch)
+        writer.add_scalar("test/macro_recall", test_rec, epoch)
+
+        # Update running best metrics (each tracked independently)
+        if test_f1 > best_metrics["best_f1"]:
+            best_metrics["best_f1"] = test_f1
+            best_metrics["best_f1_epoch"] = epoch + 1
+        if test_acc > best_metrics["best_acc"]:
+            best_metrics["best_acc"] = test_acc
+            best_metrics["best_acc_epoch"] = epoch + 1
+        if test_prec > best_metrics["best_precision"]:
+            best_metrics["best_precision"] = test_prec
+            best_metrics["best_precision_epoch"] = epoch + 1
+        if test_rec > best_metrics["best_recall"]:
+            best_metrics["best_recall"] = test_rec
+            best_metrics["best_recall_epoch"] = epoch + 1
+
+        # Save per-epoch metrics
+        epoch_entry = {
+            "epoch": epoch + 1,
+            "train_loss": round(train_avg_loss, 6),
+            "test_loss": round(test_loss, 6),
+            "test_acc": round(test_acc, 6),
+            "test_f1": round(test_f1, 6),
+            "test_precision": round(test_prec, 6),
+            "test_recall": round(test_rec, 6),
+            "best_f1_so_far": round(best_metrics["best_f1"], 6),
+            "best_acc_so_far": round(best_metrics["best_acc"], 6),
+            "best_precision_so_far": round(best_metrics["best_precision"], 6),
+            "best_recall_so_far": round(best_metrics["best_recall"], 6),
+            "training_time_seconds": round(total_training_time, 1),
+        }
+        epoch_metrics_log.append(epoch_entry)
+
+        # Persist epoch metrics to disk after each epoch
+        os.makedirs(os.path.dirname(epoch_metrics_path), exist_ok=True)
+        with open(epoch_metrics_path, "w") as f:
+            json.dump({
+                "model": config["model_name"],
+                "model_variant": model_variant,
+                "epoch_metrics": epoch_metrics_log,
+                "best_metrics": best_metrics,
+            }, f, indent=2)
 
         # Save checkpoint
         ckpt_data = {
@@ -203,6 +282,9 @@ def train(config: dict):
             "test_loss": test_loss,
             "test_acc": test_acc,
             "test_f1": test_f1,
+            "test_precision": test_prec,
+            "test_recall": test_rec,
+            "best_metrics": best_metrics,
             "config": config,
             "training_time": total_training_time,
         }
@@ -232,9 +314,51 @@ def train(config: dict):
 def main():
     parser = argparse.ArgumentParser(description="Train CWE classifier")
     parser.add_argument("--config", default="config.yaml", help="Config file path")
+    parser.add_argument("--experiment", default=None,
+                        help="Experiment name for output isolation (e.g. 'exp_b_juliet19'). "
+                             "Checkpoints/logs go to outputs/<experiment>/checkpoints/ etc.")
+    parser.add_argument("--model", default=None, help="Override model_name from config")
+    parser.add_argument("--epochs", type=int, default=None, help="Override max epochs from config")
+    parser.add_argument("--patience", type=int, default=None, help="Override early-stopping patience from config")
+    parser.add_argument("--train-path", default=None, help="Override train parquet path")
+    parser.add_argument("--test-path", default=None, help="Override test parquet path")
+    parser.add_argument("--label-map-path", default=None, help="Override label map path")
     args = parser.parse_args()
 
     config = load_config(args.config)
+
+    # Override model from CLI
+    if args.model:
+        config["model_name"] = args.model
+
+    # Override training hyperparameters from CLI
+    if args.epochs is not None:
+        config["epochs"] = args.epochs
+    if args.patience is not None:
+        config["patience"] = args.patience
+
+    # Experiment-specific output directories
+    if args.experiment:
+        config["checkpoint_dir"] = os.path.join("outputs", args.experiment, "checkpoints")
+        config["log_dir"] = os.path.join("outputs", args.experiment, "logs")
+        config["experiment_name"] = args.experiment
+
+    # Override data paths from CLI
+    if args.train_path:
+        config["train_path"] = args.train_path
+        # When using explicit paths, bypass experiment section logic
+        config.setdefault("experiment", {})["dataset_mode"] = "juliet_only"
+    if args.test_path:
+        config["test_path"] = args.test_path
+    if args.label_map_path:
+        config["label_map_path"] = args.label_map_path
+
+    # Auto-detect num_classes from label map when overriding paths
+    if args.label_map_path:
+        from src.utils import load_label_map
+        label_map = load_label_map(args.label_map_path)
+        config["num_classes"] = len(label_map)
+
     train(config)
 
 
