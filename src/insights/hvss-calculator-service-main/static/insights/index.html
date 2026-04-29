@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HVSS Insights Viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"
+          integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+          crossorigin="anonymous"></script>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">⛨</span>
+      <span class="logo-text">HVSS <em>Insights</em> Viewer</span>
+      <span class="logo-version">v1.0</span>
+    </div>
+  </div>
+</header>
+
+<main class="app-layout">
+
+  <!-- ===== LEFT: SCORE DASHBOARD ===== -->
+  <aside class="score-dashboard" id="score-dashboard">
+    <div class="score-ring-container">
+      <svg class="score-ring" viewBox="0 0 120 120">
+        <circle class="ring-bg" cx="60" cy="60" r="52" />
+        <circle class="ring-fill" id="ring-fill" cx="60" cy="60" r="52"
+                stroke-dasharray="326.73" stroke-dashoffset="326.73" />
+      </svg>
+      <div class="score-value" id="score-value">0</div>
+      <div class="score-label" id="score-label">NONE</div>
+    </div>
+
+    <div class="breakdown-cards" id="breakdown-cards">
+      <div class="breakdown-card">
+        <div class="card-header">EXPLOITABILITY</div>
+        <div class="card-score" id="exp-score">0</div>
+      </div>
+      <div class="breakdown-card impact-card" id="impact-card-display">
+        <div class="card-header" id="impact-card-header">IMPACT</div>
+        <div class="card-score" id="impact-score">0</div>
+      </div>
+    </div>
+
+    <div class="impact-breakdown" id="impact-breakdown">
+      <div class="impact-row" data-type="XCIA">
+        <span class="impact-dot dot-xcia"></span>
+        <span class="impact-name">ORIGINAL CIA</span>
+        <span class="impact-badge" id="badge-XCIA">NONE</span>
+      </div>
+      <div class="impact-row" data-type="XPS">
+        <span class="impact-dot dot-xps"></span>
+        <span class="impact-name">PATIENT SAFETY</span>
+        <span class="impact-badge" id="badge-XPS">NONE</span>
+      </div>
+      <div class="impact-row" data-type="XSD">
+        <span class="impact-dot dot-xsd"></span>
+        <span class="impact-name">SENSITIVE DATA</span>
+        <span class="impact-badge" id="badge-XSD">NONE</span>
+      </div>
+      <div class="impact-row" data-type="XHB">
+        <span class="impact-dot dot-xhb"></span>
+        <span class="impact-name">HOSPITAL BREACH</span>
+        <span class="impact-badge" id="badge-XHB">NONE</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== CENTER: CALCULATOR ===== -->
+  <section class="calculator-panel">
+
+    <!-- Analyze Section -->
+    <div class="metric-section analyze-section">
+      <div class="section-header">
+        <span class="section-icon">🔍</span>
+        <h2>ANALYZE VULNERABILITY</h2>
+      </div>
+      <textarea id="vuln-description" class="vuln-textarea"
+                rows="5"
+                placeholder="Paste ADO vulnerability description here...&#10;&#10;Example: A remote unauthenticated attacker can exploit a SQL injection vulnerability in the web interface to read patient records and modify data. No user interaction is required."></textarea>
+      <div class="analyze-row">
+        <button class="btn-analyze" id="btn-analyze" onclick="analyzeDescription()">
+          <span class="analyze-icon">⚡</span> Analyze
+        </button>
+        <span class="analyze-status" id="analyze-status"></span>
+      </div>
+    </div>
+
+    <!-- Attack Metrics -->
+    <div class="metric-section">
+      <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2>ATTACK METRICS</h2>
+      </div>
+
+      <div class="metric-group">
+        <label class="metric-label">ATTACK VECTOR (AV)</label>
+        <div class="metric-buttons" data-metric="AV">
+          <button class="mbtn" data-code="N" onclick="selectMetric(this)">Network (N)</button>
+          <button class="mbtn" data-code="A" onclick="selectMetric(this)">Adjacent (A)</button>
+          <button class="mbtn" data-code="L" onclick="selectMetric(this)">Local (L)</button>
+          <button class="mbtn" data-code="P" onclick="selectMetric(this)">Physical (P)</button>
+        </div>
+      </div>
+
+      <div class="metric-group">
+        <label class="metric-label">EXTENDED ATTACK COMPLEXITY (EAC)</label>
+        <div class="metric-buttons" data-metric="EAC">
+          <button class="mbtn" data-code="N" onclick="selectMetric(this)">Negligible (N)</button>
+          <button class="mbtn" data-code="L" onclick="selectMetric(this)">Low (L)</button>
+          <button class="mbtn" data-code="M" onclick="selectMetric(this)">Medium (M)</button>
+          <button class="mbtn" data-code="H" onclick="selectMetric(this)">High (H)</button>
+          <button class="mbtn" data-code="C" onclick="selectMetric(this)">Critical (C)</button>
+          <button class="mbtn" data-code="E" onclick="selectMetric(this)">Extreme (E)</button>
+        </div>
+      </div>
+
+      <div class="metric-group">
+        <label class="metric-label">PRIVILEGES REQUIRED (PR)</label>
+        <div class="metric-buttons" data-metric="PR">
+          <button class="mbtn" data-code="N" onclick="selectMetric(this)">None (N)</button>
+          <button class="mbtn" data-code="L" onclick="selectMetric(this)">Low (L)</button>
+          <button class="mbtn" data-code="H" onclick="selectMetric(this)">High (H)</button>
+        </div>
+      </div>
+
+      <div class="metric-group">
+        <label class="metric-label">USER INTERACTION (UI)</label>
+        <div class="metric-buttons" data-metric="UI">
+          <button class="mbtn" data-code="N" onclick="selectMetric(this)">None (N)</button>
+          <button class="mbtn" data-code="R" onclick="selectMetric(this)">Required (R)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Impact Metrics -->
+    <div class="metric-section">
+      <div class="section-header">
+        <span class="section-icon">💥</span>
+        <h2>IMPACT METRICS</h2>
+      </div>
+
+      <!-- Impact Type Tabs -->
+      <div class="impact-tabs">
+        <button class="tab-btn active" data-tab="XCIA" onclick="switchImpactTab(this)">CIA (XCIA)</button>
+        <button class="tab-btn" data-tab="XPS" onclick="switchImpactTab(this)">PATIENT SAFETY (XPS)</button>
+        <button class="tab-btn" data-tab="XSD" onclick="switchImpactTab(this)">SENSITIVE DATA (XSD)</button>
+        <button class="tab-btn" data-tab="XHB" onclick="switchImpactTab(this)">HOSPITAL BREACH (XHB)</button>
+      </div>
+
+      <!-- XCIA -->
+      <div class="impact-panel" id="panel-XCIA">
+        <div class="metric-group">
+          <label class="metric-label">CONFIDENTIALITY (C)</label>
+          <div class="metric-buttons" data-metric="C">
+            <button class="mbtn" data-code="N" onclick="selectMetric(this)">None (N)</button>
+            <button class="mbtn" data-code="L" onclick="selectMetric(this)">Low (L)</button>
+            <button class="mbtn" data-code="H" onclick="selectMetric(this)">High (H)</button>
+          </div>
+        </div>
+        <div class="metric-group">
+          <label class="metric-label">INTEGRITY (I)</label>
+          <div class="metric-buttons" data-metric="I">
+            <button class="mbtn" data-code="N" onclick="selectMetric(this)">None (N)</button>
+            <button class="mbtn" data-code="L" onclick="selectMetric(this)">Low (L)</button>
+            <button class="mbtn" data-code="H" onclick="selectMetric(this)">High (H)</button>
+          </div>
+        </div>
+        <div class="metric-group">
+          <label class="metric-label">AVAILABILITY (A)</label>
+          <div class="metric-buttons" data-metric="A">
+            <button class="mbtn" data-code="N" onclick="selectMetric(this)">None (N)</button>
+            <button class="mbtn" data-code="L" onclick="selectMetric(this)">Low (L)</button>
+            <button class="mbtn" data-code="H" onclick="selectMetric(this)">High (H)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- XPS -->
+      <div class="impact-panel hidden" id="panel-XPS">
+        <div class="metric-group">
+          <label class="metric-label">PATIENT SAFETY (XPS)</label>
+          <div class="metric-buttons" data-metric="XPS">
+            <button class="mbtn" data-code="N" onclick="selectMetric(this)">Negligible (N)</button>
+            <button class="mbtn" data-code="L" onclick="selectMetric(this)">Limited (L)</button>
+            <button class="mbtn" data-code="MD" onclick="selectMetric(this)">Moderate (MD)</button>
+            <button class="mbtn" data-code="MJ" onclick="selectMetric(this)">Major (MJ)</button>
+            <button class="mbtn" data-code="C" onclick="selectMetric(this)">Critical (C)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- XSD -->
+      <div class="impact-panel hidden" id="panel-XSD">
+        <div class="metric-group">
+          <label class="metric-label">SENSITIVE DATA EXPOSURE (XSD)</label>
+          <div class="metric-buttons" data-metric="XSD">
+            <button class="mbtn" data-code="N" onclick="selectMetric(this)">None (N)</button>
+            <button class="mbtn" data-code="SL" onclick="selectMetric(this)">Secondary Less (SL)</button>
+            <button class="mbtn" data-code="PL" onclick="selectMetric(this)">Primary Less (PL)</button>
+            <button class="mbtn" data-code="SG" onclick="selectMetric(this)">Secondary Greater (SG)</button>
+            <button class="mbtn" data-code="PG" onclick="selectMetric(this)">Primary Greater (PG)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- XHB -->
+      <div class="impact-panel hidden" id="panel-XHB">
+        <div class="metric-group">
+          <label class="metric-label">HOSPITAL BREACH (XHB)</label>
+          <div class="metric-buttons" data-metric="XHB">
+            <button class="mbtn" data-code="N" onclick="selectMetric(this)">None (N)</button>
+            <button class="mbtn" data-code="DA" onclick="selectMetric(this)">Device Availability (DA)</button>
+            <button class="mbtn" data-code="NA" onclick="selectMetric(this)">Network Access (NA)</button>
+            <button class="mbtn" data-code="UI" onclick="selectMetric(this)">User Impersonation (UI)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vector String -->
+    <div class="vector-section">
+      <div class="section-header">
+        <span class="section-icon">🔗</span>
+        <h2>VECTOR STRING</h2>
+      </div>
+      <div class="vector-input-row">
+        <input type="text" id="vector-input" class="vector-input"
+               placeholder="HVSS:1.0/AV:N/EAC:N/PR:N/UI:N/XIT:XCIA/C:H/I:L/A:N"
+               spellcheck="false" />
+        <button class="btn-copy" onclick="copyVector()" title="Copy vector">📋</button>
+        <button class="btn-reset" onclick="resetAll()" title="Reset all">↺</button>
+      </div>
+      <div class="vector-hint" id="vector-hint"></div>
+    </div>
+
+  </section>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <span>HVSS Insights Viewer &mdash; Healthcare Vulnerability Scoring System v1.0</span>
+</footer>
+
+<script>
+// ===== STATE =====
+const state = {
+  AV: null, EAC: null, PR: null, UI: null,
+  XIT: 'XCIA',
+  // XCIA sub-metrics
+  C: null, I: null, A: null,
+  // Single-value impact types
+  XPS: null, XSD: null, XHB: null
+};
+
+// Impact type to required metrics mapping
+const impactMetrics = {
+  XCIA: ['C', 'I', 'A'],
+  XPS:  ['XPS'],
+  XSD:  ['XSD'],
+  XHB:  ['XHB']
+};
+
+// Cache of scores per impact type
+const scoreCache = {
+  XCIA: null, XPS: null, XSD: null, XHB: null
+};
+
+// ===== METRIC SELECTION =====
+function selectMetric(btn) {
+  const group = btn.closest('.metric-buttons');
+  const metric = group.dataset.metric;
+  const code = btn.dataset.code;
+
+  // Deselect siblings
+  group.querySelectorAll('.mbtn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+
+  state[metric] = code;
+  updateVector();
+  calculateScore();
+}
+
+// ===== IMPACT TAB SWITCHING =====
+function switchImpactTab(tabBtn) {
+  const tab = tabBtn.dataset.tab;
+
+  // Update tab buttons
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  tabBtn.classList.add('active');
+
+  // Show correct panel
+  document.querySelectorAll('.impact-panel').forEach(p => p.classList.add('hidden'));
+  document.getElementById('panel-' + tab).classList.remove('hidden');
+
+  state.XIT = tab;
+  updateVector();
+  calculateScore();
+}
+
+// ===== VECTOR STRING BUILDING =====
+function buildVector() {
+  const xit = state.XIT;
+  let parts = ['HVSS:1.0'];
+
+  if (state.AV)  parts.push('AV:' + state.AV);
+  if (state.EAC) parts.push('EAC:' + state.EAC);
+  if (state.PR)  parts.push('PR:' + state.PR);
+  if (state.UI)  parts.push('UI:' + state.UI);
+  parts.push('XIT:' + xit);
+
+  const needed = impactMetrics[xit];
+  for (const m of needed) {
+    if (state[m]) parts.push(m + ':' + state[m]);
+  }
+
+  return parts.join('/');
+}
+
+function updateVector() {
+  document.getElementById('vector-input').value = buildVector();
+}
+
+// ===== CHECK IF ALL REQUIRED METRICS ARE SET =====
+function isComplete() {
+  if (!state.AV || !state.EAC || !state.PR || !state.UI) return false;
+  const needed = impactMetrics[state.XIT];
+  return needed.every(m => state[m] !== null);
+}
+
+// ===== SCORE CALCULATION VIA HTMX / FETCH =====
+function calculateScore() {
+  if (!isComplete()) {
+    return;
+  }
+  const vector = buildVector();
+  fetch('/score?vector=' + encodeURIComponent(vector))
+    .then(r => r.json())
+    .then(data => updateDashboard(data))
+    .catch(() => updateDashboard(null));
+}
+
+// ===== DASHBOARD UPDATE =====
+function updateDashboard(data) {
+  const scoreEl = document.getElementById('score-value');
+  const labelEl = document.getElementById('score-label');
+  const ringEl  = document.getElementById('ring-fill');
+  const expEl   = document.getElementById('exp-score');
+  const impEl   = document.getElementById('impact-score');
+  const impHead = document.getElementById('impact-card-header');
+
+  if (!data || data.errorMessage) {
+    scoreEl.textContent = '0';
+    labelEl.textContent = 'NONE';
+    labelEl.className = 'score-label';
+    ringEl.style.strokeDashoffset = '326.73';
+    ringEl.className = 'ring-fill';
+    expEl.textContent = '0';
+    impEl.textContent = '0';
+    impHead.textContent = 'IMPACT';
+    updateBadges();
+    return;
+  }
+
+  const score = data.base ?? 0;
+  const rating = (data.rating ?? 'None').toUpperCase();
+  const ratingClass = (data.rating ?? 'none').toLowerCase();
+
+  scoreEl.textContent = score;
+  labelEl.textContent = rating;
+  labelEl.className = 'score-label rating-' + ratingClass;
+
+  // Animate ring  (circumference = 2 * pi * 52 ≈ 326.73)
+  const pct = Math.min(score / 10, 1);
+  const offset = 326.73 * (1 - pct);
+  ringEl.style.strokeDashoffset = offset;
+  ringEl.className = 'ring-fill ring-' + ratingClass;
+
+  expEl.textContent = data.exploitability ?? 0;
+  impEl.textContent = score;
+  impHead.textContent = (data.impactTypeName ?? 'IMPACT').toUpperCase();
+
+  // Cache the result for this impact type
+  if (data.impactTypeCode) {
+    scoreCache[data.impactTypeCode] = { score: data.base, rating: data.rating };
+  }
+
+  updateBadges();
+}
+
+function updateBadges() {
+  const types = ['XCIA', 'XPS', 'XSD', 'XHB'];
+  types.forEach(t => {
+    const badge = document.getElementById('badge-' + t);
+    const cached = scoreCache[t];
+    if (cached) {
+      const ratingClass = (cached.rating ?? 'none').toLowerCase();
+      badge.textContent = cached.score ?? 0;
+      badge.className = 'impact-badge badge-active badge-' + ratingClass;
+    } else {
+      badge.textContent = 'NONE';
+      badge.className = 'impact-badge';
+    }
+  });
+}
+
+// ===== COPY VECTOR =====
+function copyVector() {
+  const input = document.getElementById('vector-input');
+  navigator.clipboard.writeText(input.value);
+  const hint = document.getElementById('vector-hint');
+  hint.textContent = 'Copied!';
+  setTimeout(() => hint.textContent = '', 1500);
+}
+
+// ===== PASTE / MANUAL VECTOR INPUT =====
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('vector-input');
+  input.addEventListener('change', () => parseAndApplyVector(input.value));
+  input.addEventListener('paste', (e) => {
+    setTimeout(() => parseAndApplyVector(input.value), 50);
+  });
+});
+
+function parseAndApplyVector(vectorStr) {
+  // Reset UI
+  document.querySelectorAll('.mbtn').forEach(b => b.classList.remove('selected'));
+  ['AV','EAC','PR','UI','C','I','A','XPS','XSD','XHB'].forEach(k => state[k] = null);
+
+  const parts = vectorStr.split('/');
+  for (const part of parts) {
+    const [key, val] = part.split(':');
+    if (!key || !val) continue;
+
+    if (key === 'HVSS') continue;
+
+    if (key === 'XIT') {
+      state.XIT = val;
+      // Switch tab
+      document.querySelectorAll('.tab-btn').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === val);
+      });
+      document.querySelectorAll('.impact-panel').forEach(p => p.classList.add('hidden'));
+      const panel = document.getElementById('panel-' + val);
+      if (panel) panel.classList.remove('hidden');
+      continue;
+    }
+
+    if (key in state) {
+      state[key] = val;
+      // Find and highlight the button
+      const group = document.querySelector(`.metric-buttons[data-metric="${key}"]`);
+      if (group) {
+        const btn = group.querySelector(`.mbtn[data-code="${val}"]`);
+        if (btn) btn.classList.add('selected');
+      }
+    }
+  }
+  updateVector();
+  calculateScore();
+}
+
+// ===== RESET =====
+function resetAll() {
+  Object.keys(state).forEach(k => {
+    state[k] = k === 'XIT' ? 'XCIA' : null;
+  });
+  document.querySelectorAll('.mbtn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.tab-btn').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === 'XCIA');
+  });
+  document.querySelectorAll('.impact-panel').forEach(p => p.classList.add('hidden'));
+  document.getElementById('panel-XCIA').classList.remove('hidden');
+  scoreCache.XCIA = null; scoreCache.XPS = null; scoreCache.XSD = null; scoreCache.XHB = null;
+  updateVector();
+  updateDashboard(null);
+}
+
+// ===== ANALYZE VULNERABILITY DESCRIPTION =====
+function analyzeDescription() {
+  const text = document.getElementById('vuln-description').value.trim();
+  const statusEl = document.getElementById('analyze-status');
+  const btn = document.getElementById('btn-analyze');
+
+  if (!text) {
+    statusEl.textContent = 'Please enter a vulnerability description.';
+    statusEl.className = 'analyze-status status-error';
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.textContent = 'Analyzing...';
+  statusEl.className = 'analyze-status status-loading';
+
+  fetch('/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description: text })
+  })
+    .then(r => r.json())
+    .then(data => {
+      // Reset UI first
+      document.querySelectorAll('.mbtn').forEach(b => b.classList.remove('selected'));
+      ['AV','EAC','PR','UI','C','I','A','XPS','XSD','XHB'].forEach(k => state[k] = null);
+
+      const primaryXIT = data.XIT || 'XCIA';
+
+      // Apply each suggested metric (including all impact types)
+      for (const [key, val] of Object.entries(data)) {
+        if (key === 'XIT') continue; // handle tab switch after applying all metrics
+        if (key in state) {
+          state[key] = val;
+          const group = document.querySelector(`.metric-buttons[data-metric="${key}"]`);
+          if (group) {
+            const mbtn = group.querySelector(`.mbtn[data-code="${val}"]`);
+            if (mbtn) mbtn.classList.add('selected');
+          }
+        }
+      }
+
+      // Switch active tab to primary suggested impact type
+      state.XIT = primaryXIT;
+      document.querySelectorAll('.tab-btn').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === primaryXIT);
+      });
+      document.querySelectorAll('.impact-panel').forEach(p => p.classList.add('hidden'));
+      const panel = document.getElementById('panel-' + primaryXIT);
+      if (panel) panel.classList.remove('hidden');
+
+      // Score ALL impact types, not just the active one
+      const attackComplete = state.AV && state.EAC && state.PR && state.UI;
+      if (attackComplete) {
+        const impactTypes = ['XCIA', 'XPS', 'XSD', 'XHB'];
+        const fetches = impactTypes.map(xit => {
+          const needed = impactMetrics[xit];
+          if (!needed.every(m => state[m] !== null)) return Promise.resolve(null);
+
+          // Build vector for this impact type
+          let parts = ['HVSS:1.0',
+            'AV:' + state.AV, 'EAC:' + state.EAC,
+            'PR:' + state.PR, 'UI:' + state.UI,
+            'XIT:' + xit];
+          for (const m of needed) {
+            parts.push(m + ':' + state[m]);
+          }
+          const vec = parts.join('/');
+          return fetch('/score?vector=' + encodeURIComponent(vec))
+            .then(r => r.json())
+            .then(d => { d._xit = xit; return d; })
+            .catch(() => null);
+        });
+
+        Promise.all(fetches).then(results => {
+          results.forEach(d => {
+            if (!d || d.errorMessage) return;
+            const xit = d._xit;
+            scoreCache[xit] = { score: d.base, rating: d.rating };
+          });
+          // Update dashboard with the primary impact type's data
+          const primary = results.find(d => d && d._xit === primaryXIT && !d.errorMessage);
+          if (primary) updateDashboard(primary);
+          else updateBadges();
+        });
+      }
+
+      updateVector();
+
+      statusEl.textContent = 'Analysis complete — metrics auto-selected.';
+      statusEl.className = 'analyze-status status-success';
+      setTimeout(() => { statusEl.textContent = ''; statusEl.className = 'analyze-status'; }, 3000);
+    })
+    .catch(() => {
+      statusEl.textContent = 'Analysis failed. Please try again.';
+      statusEl.className = 'analyze-status status-error';
+    })
+    .finally(() => { btn.disabled = false; });
+}
+</script>
+
+</body>
+</html>
