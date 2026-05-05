@@ -28,3 +28,9 @@ Thumbs.db
 
 # HuggingFace cache
 .cache/
+
+# Large binary files
+*.mp4
+
+# External reference repos
+src/insights/

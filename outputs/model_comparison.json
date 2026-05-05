@@ -12,7 +12,7 @@
     "F1-Score": 0.9533071887626356,
     "MCC": 0.9978632355295242,
     "FPR": 1.7965260327776464e-05,
-    "Latency (ms)": 17.2
+    "Latency (ms)": 15.15
   },
   {
     "Model": "CodeT5-Base",
@@ -27,7 +27,7 @@
     "F1-Score": 0.9604683761107978,
     "MCC": 0.9976778138607713,
     "FPR": 1.9245533425393666e-05,
-    "Latency (ms)": 24.85
+    "Latency (ms)": 26.59
   },
   {
     "Model": "CodeBERT-Base",
@@ -42,7 +42,7 @@
     "F1-Score": 0.9511519124963427,
     "MCC": 0.9960991019149364,
     "FPR": 3.329936376948035e-05,
-    "Latency (ms)": 19.4
+    "Latency (ms)": 19.91
   },
   {
     "Model": "GraphCodeBERT-Base",
@@ -57,15 +57,15 @@
     "F1-Score": 0.9529548947274965,
     "MCC": 0.9973517883172853,
     "FPR": 2.2253694777988802e-05,
-    "Latency (ms)": 26.89
+    "Latency (ms)": 23.46
   },
   {
     "Model": "CodeGemma-2B (Zero-shot)",
     "model_id": "google/codegemma-2b",
     "inference_only": true,
     "eval_samples": "sampled 500/22447",
-    "Parameters": 2506172416,
-    "Size (MB)": 4677.0,
+    "Parameters": "N/A",
+    "Size (MB)": "N/A",
     "Best Epoch": "N/A",
     "Training Time (s)": "N/A",
     "Accuracy": 0.25,
@@ -74,15 +74,15 @@
     "F1-Score": 0.0948387144499335,
     "MCC": 0.3022075523762659,
     "FPR": 0.006892582394711445,
-    "Latency (ms)": 3277.18
+    "Latency (ms)": 16451.09
   },
   {
     "Model": "Gemma 4 E2B IT (Zero-shot)",
     "model_id": "google/gemma-4-E2B-it",
     "inference_only": true,
     "eval_samples": "sampled 50/22447",
-    "Parameters": 5126890496,
-    "Size (MB)": 9561.0,
+    "Parameters": "N/A",
+    "Size (MB)": "N/A",
     "Best Epoch": "N/A",
     "Training Time (s)": "N/A",
     "Accuracy": 0.78,
@@ -91,6 +91,6 @@
     "F1-Score": 0.6988455988455988,
     "MCC": 0.7799286954930406,
     "FPR": 0.001997052321296978,
-    "Latency (ms)": 396273.15
+    "Latency (ms)": 174424.51
   }
 ]

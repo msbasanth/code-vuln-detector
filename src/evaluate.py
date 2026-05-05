@@ -28,7 +28,7 @@ from sklearn.metrics import (
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.data.dataset import get_dataloaders
-from src.model import CWEClassifier, load_qlora_for_inference
+from src.model import CWEClassifier, CWEBiLSTM, load_qlora_for_inference
 from src.utils import load_config, setup_logging, get_device, load_label_map
 
 
@@ -80,6 +80,7 @@ def main():
     parser.add_argument("--config", default="config.yaml", help="Config file path")
     parser.add_argument("--checkpoint", default=None, help="Checkpoint path (default: best.pt)")
     parser.add_argument("--qlora", action="store_true", help="Evaluate QLoRA model instead of encoder model")
+    parser.add_argument("--dl-model", action="store_true", help="Evaluate a DL model (BiLSTM) instead of encoder model")
     parser.add_argument("--experiment", default=None, help="Experiment name (e.g. exp_a_juliet118)")
     parser.add_argument("--model", default=None, help="Model name override (e.g. Salesforce/codet5-small)")
     parser.add_argument("--test-path", default=None, help="Override test parquet path")
@@ -174,11 +175,29 @@ def main():
             checkpoint_path = os.path.join(config["checkpoint_dir"], "best.pt")
         logger.info(f"Loading checkpoint: {checkpoint_path}")
 
-        model = CWEClassifier(
-            model_name=config["model_name"],
-            num_classes=config["num_classes"],
-            dropout=config["dropout"],
-        )
+        model_name = config.get("model_name", "")
+        is_dl = args.dl_model or model_name.startswith("bilstm") or model_name.startswith("textcnn")
+
+        if is_dl:
+            dl_config = config.get("dl", {})
+            tokenizer_name = dl_config.get("tokenizer_name", "Salesforce/codet5-small")
+            from transformers import AutoTokenizer
+            dl_tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+            model = CWEBiLSTM(
+                vocab_size=dl_tokenizer.vocab_size,
+                num_classes=config["num_classes"],
+                embedding_dim=dl_config.get("embedding_dim", 128),
+                hidden_dim=dl_config.get("hidden_dim", 256),
+                num_layers=dl_config.get("num_layers", 2),
+                dropout=0.0,  # No dropout during inference
+                pad_idx=dl_tokenizer.pad_token_id or 0,
+            )
+        else:
+            model = CWEClassifier(
+                model_name=config["model_name"],
+                num_classes=config["num_classes"],
+                dropout=config["dropout"],
+            )
         ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
         model.load_state_dict(ckpt["model_state_dict"])
         model.to(device)

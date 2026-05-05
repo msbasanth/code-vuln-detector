@@ -67,6 +67,112 @@ class CWEClassifier(nn.Module):
         return logits
 
 
+class SelfAttention(nn.Module):
+    """Learnable self-attention pooling over sequence outputs."""
+
+    def __init__(self, hidden_dim: int):
+        super().__init__()
+        self.query = nn.Linear(hidden_dim, 1)
+
+    def forward(self, lstm_output: torch.Tensor, mask: torch.Tensor):
+        """Compute attention-weighted sum.
+
+        Args:
+            lstm_output: (batch, seq_len, hidden_dim)
+            mask: (batch, seq_len) — 1 for real tokens, 0 for padding
+
+        Returns:
+            context: (batch, hidden_dim)
+            weights: (batch, seq_len) — attention weights (for visualization)
+        """
+        scores = self.query(lstm_output).squeeze(-1)  # (batch, seq_len)
+        scores = scores.masked_fill(mask == 0, float("-inf"))
+        weights = torch.softmax(scores, dim=-1)  # (batch, seq_len)
+        context = (lstm_output * weights.unsqueeze(-1)).sum(dim=1)  # (batch, hidden_dim)
+        return context, weights
+
+
+class CWEBiLSTM(nn.Module):
+    """BiLSTM with self-attention for CWE vulnerability classification.
+
+    Architecture:
+        Embedding → BiLSTM (2 layers) → Self-Attention → Dropout → Linear
+
+    Uses the same forward(input_ids, attention_mask) → logits interface
+    as CWEClassifier for pipeline compatibility.
+    """
+
+    def __init__(
+        self,
+        vocab_size: int,
+        num_classes: int,
+        embedding_dim: int = 128,
+        hidden_dim: int = 256,
+        num_layers: int = 2,
+        dropout: float = 0.3,
+        pad_idx: int = 0,
+    ):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_idx)
+        self.lstm = nn.LSTM(
+            embedding_dim,
+            hidden_dim,
+            num_layers=num_layers,
+            batch_first=True,
+            bidirectional=True,
+            dropout=dropout if num_layers > 1 else 0.0,
+        )
+        self.attention = SelfAttention(hidden_dim * 2)  # *2 for bidirectional
+        self.dropout = nn.Dropout(dropout)
+        self.classifier = nn.Linear(hidden_dim * 2, num_classes)
+
+    def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+        """Forward pass.
+
+        Args:
+            input_ids: (batch_size, seq_len)
+            attention_mask: (batch_size, seq_len)
+
+        Returns:
+            logits: (batch_size, num_classes)
+        """
+        embedded = self.embedding(input_ids)  # (batch, seq_len, embedding_dim)
+
+        # Pack padded sequences for efficient LSTM processing
+        lengths = attention_mask.sum(dim=1).cpu().clamp(min=1)
+        packed = nn.utils.rnn.pack_padded_sequence(
+            embedded, lengths, batch_first=True, enforce_sorted=False,
+        )
+        lstm_out, _ = self.lstm(packed)
+        lstm_out, _ = nn.utils.rnn.pad_packed_sequence(
+            lstm_out, batch_first=True, total_length=input_ids.size(1),
+        )  # (batch, seq_len, hidden_dim*2)
+
+        # Attention pooling
+        context, _ = self.attention(lstm_out, attention_mask)  # (batch, hidden_dim*2)
+
+        # Classify
+        logits = self.classifier(self.dropout(context))
+        return logits
+
+    def forward_with_attention(
+        self, input_ids: torch.Tensor, attention_mask: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Forward pass that also returns attention weights for visualization."""
+        embedded = self.embedding(input_ids)
+        lengths = attention_mask.sum(dim=1).cpu().clamp(min=1)
+        packed = nn.utils.rnn.pack_padded_sequence(
+            embedded, lengths, batch_first=True, enforce_sorted=False,
+        )
+        lstm_out, _ = self.lstm(packed)
+        lstm_out, _ = nn.utils.rnn.pad_packed_sequence(
+            lstm_out, batch_first=True, total_length=input_ids.size(1),
+        )
+        context, attn_weights = self.attention(lstm_out, attention_mask)
+        logits = self.classifier(self.dropout(context))
+        return logits, attn_weights
+
+
 def load_qlora_classifier(model_id: str, num_classes: int, qlora_config: dict):
     """Load a causal LM as a sequence classifier with QLoRA for training.
 

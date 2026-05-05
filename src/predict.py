@@ -17,7 +17,7 @@ from transformers import AutoTokenizer
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.data.preprocess import preprocess
-from src.model import CWEClassifier, load_qlora_for_inference
+from src.model import CWEClassifier, CWEBiLSTM, load_qlora_for_inference
 from src.utils import load_config, get_device, load_label_map
 
 
@@ -162,6 +162,84 @@ def predict_code_qlora(
     with torch.no_grad():
         outputs = model(input_ids=input_ids, attention_mask=attention_mask)
         probs = torch.softmax(outputs.logits, dim=-1).squeeze(0)
+
+    inv_map = {v: k for k, v in label_map.items()}
+
+    top_probs, top_indices = probs.topk(top_k)
+    results = []
+    for prob, idx in zip(top_probs.tolist(), top_indices.tolist()):
+        cwe_id = inv_map.get(idx, "unknown")
+        results.append({
+            "cwe": f"CWE-{cwe_id}",
+            "confidence": round(prob, 4),
+        })
+
+    return results
+
+
+def load_dl_model(config: dict, device: torch.device):
+    """Load a trained DL model (BiLSTM) from best checkpoint.
+
+    Returns:
+        (model, tokenizer) tuple.
+    """
+    dl_config = config.get("dl", {})
+    tokenizer_name = dl_config.get("tokenizer_name", "Salesforce/codet5-small")
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+
+    model_variant = config["model_name"]  # e.g. "bilstm-attention"
+    checkpoint_path = os.path.join(config["checkpoint_dir"], model_variant, "best.pt")
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"No checkpoint found at {checkpoint_path}. Train the model first.")
+
+    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
+
+    model = CWEBiLSTM(
+        vocab_size=tokenizer.vocab_size,
+        num_classes=config["num_classes"],
+        embedding_dim=dl_config.get("embedding_dim", 128),
+        hidden_dim=dl_config.get("hidden_dim", 256),
+        num_layers=dl_config.get("num_layers", 2),
+        dropout=0.0,  # No dropout during inference
+        pad_idx=tokenizer.pad_token_id or 0,
+    )
+    model.load_state_dict(ckpt["model_state_dict"])
+    model.to(device)
+    model.eval()
+
+    return model, tokenizer
+
+
+def predict_code_dl(
+    code: str,
+    model: CWEBiLSTM,
+    tokenizer,
+    label_map: dict,
+    device: torch.device,
+    max_length: int = 256,
+    top_k: int = 5,
+) -> list[dict]:
+    """Predict CWE category using a DL model (BiLSTM).
+
+    Returns:
+        List of dicts with 'cwe', 'confidence' keys, sorted descending.
+    """
+    code = preprocess(code)
+
+    encoding = tokenizer(
+        code,
+        max_length=max_length,
+        padding="max_length",
+        truncation=True,
+        return_tensors="pt",
+    )
+
+    input_ids = encoding["input_ids"].to(device)
+    attention_mask = encoding["attention_mask"].to(device)
+
+    with torch.no_grad():
+        logits = model(input_ids, attention_mask)
+        probs = torch.softmax(logits, dim=-1).squeeze(0)
 
     inv_map = {v: k for k, v in label_map.items()}
 

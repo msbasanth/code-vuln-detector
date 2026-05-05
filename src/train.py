@@ -22,8 +22,14 @@ from sklearn.metrics import f1_score, precision_score, recall_score
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.data.dataset import get_dataloaders
-from src.model import CWEClassifier
+from src.model import CWEClassifier, CWEBiLSTM
 from src.utils import load_config, setup_logging, set_seed, get_device, count_parameters
+
+
+def _is_dl_model(config: dict) -> bool:
+    """Check if the selected model is a traditional DL model (non-transformer)."""
+    model_name = config.get("model_name", "")
+    return model_name.startswith("bilstm") or model_name.startswith("textcnn")
 
 
 def evaluate(model, dataloader, device):
@@ -89,11 +95,30 @@ def train(config: dict):
     logger.info(f"Train batches: {len(train_loader)}, Test batches: {len(test_loader)}")
 
     # Model
-    model = CWEClassifier(
-        model_name=config["model_name"],
-        num_classes=num_classes,
-        dropout=config["dropout"],
-    ).to(device)
+    dl_config = config.get("dl", {})
+    if _is_dl_model(config):
+        # DL model — use tokenizer vocab size for embedding layer
+        vocab_size = tokenizer.vocab_size
+        model = CWEBiLSTM(
+            vocab_size=vocab_size,
+            num_classes=num_classes,
+            embedding_dim=dl_config.get("embedding_dim", 128),
+            hidden_dim=dl_config.get("hidden_dim", 256),
+            num_layers=dl_config.get("num_layers", 2),
+            dropout=dl_config.get("dropout", 0.3),
+            pad_idx=tokenizer.pad_token_id or 0,
+        ).to(device)
+        # Override hyperparameters for DL models
+        effective_lr = dl_config.get("learning_rate", 1e-3)
+        effective_wd = config.get("weight_decay", 0.01)
+    else:
+        model = CWEClassifier(
+            model_name=config["model_name"],
+            num_classes=num_classes,
+            dropout=config["dropout"],
+        ).to(device)
+        effective_lr = config["learning_rate"]
+        effective_wd = config["weight_decay"]
 
     params = count_parameters(model)
     logger.info(f"Model parameters — total: {params['total']:,}, trainable: {params['trainable']:,}")
@@ -101,8 +126,8 @@ def train(config: dict):
     # Optimizer & loss
     optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=config["learning_rate"],
-        weight_decay=config["weight_decay"],
+        lr=effective_lr,
+        weight_decay=effective_wd,
     )
     criterion = nn.CrossEntropyLoss()
 

@@ -17,7 +17,7 @@ import torch
 from transformers import AutoTokenizer
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from src.predict import load_model, predict_code, predict_file, load_qlora_model, predict_code_qlora
+from src.predict import load_model, predict_code, predict_file, load_qlora_model, predict_code_qlora, load_dl_model, predict_code_dl
 from src.gemma_predict import load_zero_shot_model, predict_code_zero_shot
 from src.utils import load_config, get_device, load_label_map, count_parameters
 from src.risk import HealthcareRiskPrioritizer
@@ -146,7 +146,7 @@ CWE_DESCRIPTIONS = {
 
 
 @st.cache_resource
-def get_model(model_name: str, inference_only: bool = False, qlora: bool = False):
+def get_model(model_name: str, inference_only: bool = False, qlora: bool = False, dl_model: bool = False):
     """Load model, tokenizer, and label map once (cached per model)."""
     config = load_config("config.yaml")
     config["model_name"] = model_name  # Override with selected model
@@ -156,6 +156,8 @@ def get_model(model_name: str, inference_only: bool = False, qlora: bool = False
         model, tokenizer = load_qlora_model(config)
     elif inference_only:
         model, tokenizer = load_zero_shot_model(model_name)
+    elif dl_model or model_name.startswith("bilstm") or model_name.startswith("textcnn"):
+        model, tokenizer = load_dl_model(config, device)
     else:
         model = load_model(config, device)
         tokenizer = AutoTokenizer.from_pretrained(config["model_name"])
@@ -549,6 +551,24 @@ EXPERIMENT_CONFIGS = {
             "Tests whether additional training improves convergence on the combined dataset."
         ),
     },
+    "Experiment G — BiLSTM-Attention DL Baseline": {
+        "id": "exp_g_bilstm",
+        "dataset_key": "Juliet Full (118 CWEs)",
+        "train_path": "data/processed/train.parquet",
+        "test_path": "data/processed/test.parquet",
+        "label_map": "data/processed/label_map.json",
+        "checkpoint_base": "outputs/exp_g_bilstm/checkpoints",
+        "logs_dir": "outputs/exp_g_bilstm/logs",
+        "eval_dir": "outputs/exp_g_bilstm",
+        "models": ["bilstm-attention"],
+        "description": (
+            "Traditional Deep Learning baseline using a **BiLSTM with Self-Attention** "
+            "architecture (~2-5M parameters). Trained on the full Juliet C/C++ 1.3 "
+            "Test Suite with **118 CWE categories**, **82,736 training** and **22,447 test** "
+            "samples. Uses CodeT5's BPE tokenizer for consistent tokenization. "
+            "Serves as a DL baseline to benchmark against transformer-based models."
+        ),
+    },
 }
 
 MODEL_DISPLAY_NAMES = {
@@ -556,6 +576,7 @@ MODEL_DISPLAY_NAMES = {
     "codet5-base": "CodeT5-Base",
     "codebert-base": "CodeBERT-Base",
     "graphcodebert-base": "GraphCodeBERT-Base",
+    "bilstm-attention": "BiLSTM-Attention",
 }
 
 
@@ -630,6 +651,8 @@ model_options = {m["name"]: m["model_id"] for m in available_models}
 inference_only_ids = {m["model_id"] for m in available_models if m.get("inference_only", False)}
 # Track which models are QLoRA fine-tuned
 qlora_ids = {m["model_id"] for m in available_models if m.get("qlora", False)}
+# Track which models are traditional DL (non-transformer)
+dl_model_ids = {m["model_id"] for m in available_models if m.get("dl_model", False)}
 
 # --- Sidebar: navigation + branding ---
 st.sidebar.title("Navigation")
@@ -662,11 +685,14 @@ if nav_page == "The Detector":
     selected_model_id = model_options[selected_model_name]
     is_inference_only = selected_model_id in inference_only_ids
     is_qlora = selected_model_id in qlora_ids
+    is_dl_model = selected_model_id in dl_model_ids
 
     if is_inference_only:
         st.caption(f"Zero-shot · {selected_model_name} | 118 CWE categories")
     elif is_qlora:
         st.caption(f"QLoRA fine-tuned · {selected_model_name} | 118 CWE categories | Trained on NIST Juliet Test Suite v1.3")
+    elif is_dl_model:
+        st.caption(f"Deep Learning · {selected_model_name} | 118 CWE categories | Trained on NIST Juliet Test Suite v1.3")
     else:
         st.caption(f"Powered by {selected_model_name} | 118 CWE categories | Trained on NIST Juliet Test Suite v1.3")
 
@@ -674,7 +700,7 @@ if nav_page == "The Detector":
     with st.spinner("Loading model..."):
         try:
             model, tokenizer, label_map, device, config = get_model(
-                selected_model_id, inference_only=is_inference_only, qlora=is_qlora
+                selected_model_id, inference_only=is_inference_only, qlora=is_qlora, dl_model=is_dl_model
             )
         except FileNotFoundError as e:
             st.error(f"Model error: {e}")
@@ -718,6 +744,11 @@ if nav_page == "The Detector":
                             code, model, tokenizer, label_map,
                             max_length=config["max_length"], top_k=top_k,
                         )
+                    elif is_dl_model:
+                        results = predict_code_dl(
+                            code, model, tokenizer, label_map, device,
+                            max_length=config["max_length"], top_k=top_k,
+                        )
                     else:
                         results = predict_code(
                             code, model, tokenizer, label_map, device,
@@ -744,6 +775,11 @@ if nav_page == "The Detector":
                     elif is_qlora:
                         results = predict_code_qlora(
                             code, model, tokenizer, label_map,
+                            max_length=config["max_length"], top_k=top_k,
+                        )
+                    elif is_dl_model:
+                        results = predict_code_dl(
+                            code, model, tokenizer, label_map, device,
                             max_length=config["max_length"], top_k=top_k,
                         )
                     else:
@@ -782,6 +818,13 @@ if nav_page == "The Detector":
                                 file_code = fh.read()
                             results = predict_code_qlora(
                                 file_code, model, tokenizer, label_map,
+                                max_length=config["max_length"], top_k=1,
+                            )
+                        elif is_dl_model:
+                            with open(fpath, "r", errors="replace") as fh:
+                                file_code = fh.read()
+                            results = predict_code_dl(
+                                file_code, model, tokenizer, label_map, device,
                                 max_length=config["max_length"], top_k=1,
                             )
                         else:

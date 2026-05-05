@@ -56,7 +56,16 @@ def get_dataloaders(config: dict) -> tuple[DataLoader, DataLoader, AutoTokenizer
     Returns:
         (train_loader, test_loader, tokenizer)
     """
-    tokenizer = AutoTokenizer.from_pretrained(config["model_name"])
+    # For DL models (BiLSTM etc.), use a separate tokenizer specified in dl config
+    model_name = config.get("model_name", "")
+    dl_config = config.get("dl", {})
+    if model_name.startswith("bilstm") or model_name.startswith("textcnn"):
+        tokenizer_name = dl_config.get("tokenizer_name", "Salesforce/codet5-small")
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+        batch_size = dl_config.get("batch_size", config["batch_size"])
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        batch_size = config["batch_size"]
 
     train_df = pd.read_parquet(config["train_path"])
     test_df = pd.read_parquet(config["test_path"])
@@ -77,7 +86,7 @@ def get_dataloaders(config: dict) -> tuple[DataLoader, DataLoader, AutoTokenizer
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=config["batch_size"],
+        batch_size=batch_size,
         shuffle=True,
         num_workers=config.get("num_workers", 0),
         pin_memory=config.get("pin_memory", True),
@@ -85,7 +94,7 @@ def get_dataloaders(config: dict) -> tuple[DataLoader, DataLoader, AutoTokenizer
 
     test_loader = DataLoader(
         test_dataset,
-        batch_size=config["batch_size"],
+        batch_size=batch_size,
         shuffle=False,
         num_workers=config.get("num_workers", 0),
         pin_memory=config.get("pin_memory", True),

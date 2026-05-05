@@ -30,7 +30,7 @@ from sklearn.metrics import (
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from src.data.dataset import get_dataloaders
 from src.gemma_predict import load_zero_shot_model, predict_code_zero_shot, _is_instruction_tuned
-from src.model import CWEClassifier, load_qlora_for_inference
+from src.model import CWEClassifier, CWEBiLSTM, load_qlora_for_inference
 from src.utils import load_config, get_device, load_label_map, count_parameters
 
 
@@ -304,6 +304,107 @@ for display_name, model_id in QLORA_MODELS:
 
     del qlora_model, qlora_tokenizer
     gc.collect()
+    torch.cuda.empty_cache()
+
+# ── DL (non-transformer) models ─────────────────────────────────────────────
+DL_MODELS = [
+    ("BiLSTM-Attention", "bilstm-attention", "outputs/exp_g_bilstm/checkpoints"),
+]
+
+for display_name, model_id, dl_ckpt_dir in DL_MODELS:
+    variant = model_id
+    ckpt_path = os.path.join(dl_ckpt_dir, variant, "best.pt")
+    latest_ckpt_path = os.path.join(dl_ckpt_dir, variant, "latest.pt")
+
+    if not os.path.exists(ckpt_path):
+        print(f"\n{display_name}: checkpoint not found at {ckpt_path}, skipping.")
+        continue
+
+    print(f"\n{'='*60}")
+    print(f"Evaluating (DL): {display_name} ({model_id})")
+    print(f"{'='*60}")
+
+    dl_config = config.get("dl", {})
+    tokenizer_name = dl_config.get("tokenizer_name", "Salesforce/codet5-small")
+    from transformers import AutoTokenizer as _AT_DL
+    dl_tokenizer = _AT_DL.from_pretrained(tokenizer_name)
+
+    # Load model
+    dl_model = CWEBiLSTM(
+        vocab_size=dl_tokenizer.vocab_size,
+        num_classes=num_classes,
+        embedding_dim=dl_config.get("embedding_dim", 128),
+        hidden_dim=dl_config.get("hidden_dim", 256),
+        num_layers=dl_config.get("num_layers", 2),
+        dropout=0.0,
+        pad_idx=dl_tokenizer.pad_token_id or 0,
+    )
+    ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+    dl_model.load_state_dict(ckpt["model_state_dict"])
+    dl_model.to(device)
+
+    params = count_parameters(dl_model)
+    ckpt_size_mb = os.path.getsize(ckpt_path) / (1024 * 1024)
+    best_epoch = ckpt.get("epoch", "N/A")
+    if os.path.exists(latest_ckpt_path):
+        latest_ckpt = torch.load(latest_ckpt_path, map_location="cpu", weights_only=False)
+        training_time_s = latest_ckpt.get("training_time", None)
+        del latest_ckpt
+    else:
+        training_time_s = ckpt.get("training_time", None)
+
+    # Load test data with DL tokenizer
+    eval_config = {**config, "model_name": model_id}
+    _, dl_test_loader, _ = get_dataloaders(eval_config)
+
+    # Latency measurement
+    _enc = dl_tokenizer(SAMPLE_CODE, max_length=config["max_length"],
+                        padding="max_length", truncation=True, return_tensors="pt")
+    _ids = _enc["input_ids"].to(device)
+    _mask = _enc["attention_mask"].to(device)
+    with torch.no_grad():
+        for _ in range(5):
+            dl_model(_ids, _mask)
+    latencies = []
+    with torch.no_grad():
+        for _ in range(20):
+            t0 = time.perf_counter()
+            dl_model(_ids, _mask)
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            latencies.append(time.perf_counter() - t0)
+    avg_latency_ms = np.mean(latencies) * 1000
+    del _enc, _ids, _mask
+
+    # Predict
+    y_pred, y_true = predict_all(dl_model, dl_test_loader, device)
+
+    # Metrics
+    acc = accuracy_score(y_true, y_pred)
+    prec = precision_score(y_true, y_pred, average="macro", zero_division=0)
+    rec = recall_score(y_true, y_pred, average="macro", zero_division=0)
+    f1 = f1_score(y_true, y_pred, average="macro", zero_division=0)
+    mcc = matthews_corrcoef(y_true, y_pred)
+    fpr = macro_fpr(y_true, y_pred, num_classes)
+
+    results.append({
+        "Model": display_name,
+        "model_id": model_id,
+        "dl_model": True,
+        "Parameters": params["total"],
+        "Size (MB)": round(ckpt_size_mb, 1),
+        "Best Epoch": best_epoch,
+        "Training Time (s)": round(training_time_s, 1) if training_time_s else "N/A",
+        "Accuracy": acc,
+        "Precision": prec,
+        "Recall": rec,
+        "F1-Score": f1,
+        "MCC": mcc,
+        "FPR": fpr,
+        "Latency (ms)": round(avg_latency_ms, 2),
+    })
+
+    del dl_model
     torch.cuda.empty_cache()
 
 # ── Zero-shot models ────────────────────────────────────────────────────────
